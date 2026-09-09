@@ -4,6 +4,10 @@
 
 轻量 Windows Codex 额度小窗，在任务栏通知区旁查看剩余额度和重置倒计时。
 
+**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0-preview.1/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
+
+适用于 Windows x64，目前为预览版。
+
 ![CodexUsage 任务栏小条](assets/widget-preview.png)
 
 ## 功能

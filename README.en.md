@@ -4,6 +4,10 @@
 
 A lightweight Windows widget for Codex quota and reset time, next to the notification area.
 
+**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0-preview.1/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
+
+For Windows x64. Currently a preview release.
+
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 
 ## Features
