@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-preview.1 — 2026-09-09
+## 1.0.0 — 2026-09-09
 
 - 显示 Codex 账号套餐及实际返回的额度窗口。
   Display the Codex account plan and available quota windows.

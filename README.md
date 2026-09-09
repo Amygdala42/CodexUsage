@@ -4,9 +4,9 @@
 
 轻量 Windows Codex 额度小窗，在任务栏通知区旁查看剩余额度和重置倒计时。
 
-**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0-preview.1/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
+**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
 
-适用于 Windows x64，目前为预览版。
+适用于 Windows x64。
 
 ![CodexUsage 任务栏小条](assets/widget-preview.png)
 
@@ -36,7 +36,7 @@
 1. 在 Releases 中下载 `CodexUsage.exe`，或下载 `CodexUsage-Windows-x64.zip` 后解压。
 2. 将程序放在可写入的文件夹，运行 `CodexUsage.exe`。
 
-目前为预览状态，验证范围见 [测试说明](docs/TESTING.md)。
+验证范围见 [测试说明](docs/TESTING.md)。
 
 ## 开发
 

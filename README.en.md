@@ -4,9 +4,9 @@
 
 A lightweight Windows widget for Codex quota and reset time, next to the notification area.
 
-**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0-preview.1/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
+**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.0/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
 
-For Windows x64. Currently a preview release.
+For Windows x64.
 
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 
@@ -36,7 +36,7 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 1. Download `CodexUsage.exe` from Releases, or download and extract `CodexUsage-Windows-x64.zip`.
 2. Keep the app in a writable folder and run `CodexUsage.exe`.
 
-Currently a preview. See [TESTING](docs/TESTING.md) for verification scope.
+See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
