@@ -10,12 +10,13 @@ namespace CodexQuotaLite
   private float scale, preferredScale;
   private string plan;
   private readonly Panel cards = new Panel();
-  private readonly Label status = new Label(), updated = new Label(), notice = new Label();
+  private readonly Label status = new Label(), updated = new Label();
   private readonly Button refresh = new Button(), close = new Button(), languageChoice = new Button();
   private readonly UiDarkChoice windowChoice = new UiDarkChoice();
   private readonly ToolTip tip = new ToolTip();
   private readonly List<QuotaWindow> windows = new List<QuotaWindow>();
-  private bool binding, quitting, hasNotice, lastStale, lastBusy;
+  private bool binding, quitting, lastStale, lastBusy;
+  private WidgetForm anchor;
   private QuotaSnapshot lastSnapshot;
   private string lastSelectedId, lastMessage, lastSettingsMessage;
   public event EventHandler RefreshRequested;
@@ -24,7 +25,7 @@ namespace CodexQuotaLite
   public string SelectedWindowId { get { return windowChoice.SelectedIndex >= 0 && windowChoice.SelectedIndex < windows.Count ? windows[windowChoice.SelectedIndex].Id : null; } }
   private float CardsHeight { get { return Math.Max(70, windows.Count * 74 + Math.Max(0, windows.Count - 1) * 8); } }
   private float ChoiceY { get { return 84 + CardsHeight + 14; } }
-  private float FooterY { get { return ChoiceY + 46 + (hasNotice ? 38 : 0); } }
+  private float FooterY { get { return ChoiceY + 46; } }
   private float LogicalHeight { get { return FooterY + 44; } }
   public DetailsForm(AppSettings settings)
   {
@@ -39,10 +40,10 @@ namespace CodexQuotaLite
     SetState(lastSnapshot,SelectedWindowId??lastSelectedId,lastStale,lastBusy,lastMessage,lastSettingsMessage);
     if(SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);
    };
-   status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;notice.ForeColor=Theme.Warning;
+   status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=true;
    status.TextAlign=ContentAlignment.MiddleLeft;updated.TextAlign=ContentAlignment.MiddleLeft;
    windowChoice.BackColor=Theme.Card;windowChoice.ForeColor=Theme.Text;
-   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,notice,languageChoice,windowChoice});
+   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice});
    windowChoice.SelectedIndexChanged+=delegate{if(!binding&&SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);};
    ApplyScale(100);SetState(null,null,false,false,null,null);
   }
@@ -67,7 +68,6 @@ namespace CodexQuotaLite
   {
    Box(close,309,17,31,29);Box(cards,20,84,320,CardsHeight);
    Box(languageChoice,20,ChoiceY,76,28);Box(windowChoice,108,ChoiceY,232,28);
-   Box(notice,20,ChoiceY+38,320,34);
    Box(status,20,FooterY,124,28);Box(updated,148,FooterY,112,28);Box(refresh,268,FooterY,72,28);
    for(int i=0;i<cards.Controls.Count;i++){UiQuotaCard card=(UiQuotaCard)cards.Controls[i];card.ScaleFactor=scale;card.Bounds=Rectangle.Round(new RectangleF(0,i*82*scale,320*scale,74*scale));}
   }
@@ -79,7 +79,7 @@ namespace CodexQuotaLite
    cards.AccessibleName=UiText.T("全部额度窗口","All usage windows");close.AccessibleName=UiText.T("关闭详情","Close details");
    languageChoice.Text=UiText.T("English","中文");languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
    windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");tip.SetToolTip(windowChoice,windowChoice.AccessibleName);
-   status.AccessibleName=UiText.T("自动刷新频率","Automatic refresh interval");updated.AccessibleName=UiText.T("上次更新时间","Last successful update");refresh.AccessibleName=UiText.T("立即刷新套餐和额度","Refresh plan and usage");notice.AccessibleName=UiText.T("读取状态","Connection status");
+   status.AccessibleName=UiText.T("刷新状态","Refresh status");updated.AccessibleName=UiText.T("上次更新时间","Last successful update");refresh.AccessibleName=UiText.T("立即刷新套餐和额度","Refresh plan and usage");
    binding=true;
    string oldIds=String.Join("|",windows.ConvertAll(delegate(QuotaWindow w){return w.Id;}).ToArray());
    List<QuotaWindow> next=snapshot==null||snapshot.Windows==null?new List<QuotaWindow>():snapshot.Windows;
@@ -95,11 +95,16 @@ namespace CodexQuotaLite
    tip.SetToolTip(updated,snapshot==null?updated.Text:UiText.T("完整更新时间：","Last updated: ")+snapshot.FetchedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz"));
    string text=busy?UiText.T("正在读取 Codex 账号套餐与额度…","Reading your Codex plan and usage…"):!String.IsNullOrEmpty(message)?UiText.Error(message):snapshot==null?UiText.T("等待获取额度。请先在 Codex 中登录。","Waiting for usage. Sign in to Codex first."):stale?UiText.T("上次结果已过期，请刷新后查看。","The previous result is out of date. Please refresh."):String.Empty;
    if(!String.IsNullOrEmpty(settingsMessage))text=UiText.Error(settingsMessage)+" "+text;
-   hasNotice=!String.IsNullOrEmpty(text);notice.Text=text;notice.Visible=hasNotice;notice.ForeColor=busy&&String.IsNullOrEmpty(settingsMessage)?Theme.Muted:Theme.Warning;
+   bool problem=!String.IsNullOrEmpty(message)||!String.IsNullOrEmpty(settingsMessage)||stale;
+   status.Text=busy?UiText.T("正在刷新…","Refreshing…"):problem?UiText.T("状态提示（悬停查看）","Status · hover for details"):snapshot==null?UiText.T("等待获取额度","Waiting for usage"):UiText.T("额度每5分钟自动刷新","Every 5 min");
+   status.ForeColor=problem?Theme.Warning:Theme.Muted;status.AccessibleDescription=text;tip.SetToolTip(status,String.IsNullOrEmpty(text)?status.Text:text);
    cards.AccessibleDescription=UiText.T("额度窗口数量：","Usage windows: ")+windows.Count;
-   FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);Bounds=Theme.Clamp(Bounds,Screen.FromRectangle(Bounds).WorkingArea);Invalidate();
+   if(Visible&&anchor!=null&&!anchor.IsDisposed)RepositionAnchored();
+   else{FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);Bounds=Theme.Clamp(Bounds,Screen.FromRectangle(Bounds).WorkingArea);}Invalidate();
   }
-  public void ShowAnchored(WidgetForm widget){Rectangle area=Screen.FromControl(widget).WorkingArea;FitToWorkingArea(area);int gap=(int)(10*scale),x=widget.Right-Width,y=widget.Top-Height-gap;if(y<area.Top)y=widget.Bottom+gap;Bounds=Theme.Clamp(new Rectangle(x,y,Width,Height),area);Show();Activate();}
+  public void ShowAnchored(WidgetForm widget){anchor=widget;RepositionAnchored();Show();Activate();}
+  private void RepositionAnchored(){Rectangle area=Screen.FromControl(anchor).WorkingArea;FitToWorkingArea(area);int gap=(int)(10*scale),x=anchor.Right-Width,y=anchor.Top-Height-gap;if(y<area.Top)y=anchor.Bottom+gap;Bounds=Theme.Clamp(new Rectangle(x,y,Width,Height),area);}
+  internal bool ContainsPointer(Point point){return Visible&&(Bounds.Contains(point)||windowChoice.DropDownContains(point));}
   protected override void OnPaint(PaintEventArgs e)
   {
    base.OnPaint(e);Graphics g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;

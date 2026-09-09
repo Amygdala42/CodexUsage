@@ -8,16 +8,22 @@ namespace CodexQuotaLite
         public string SupportDirectory { get; private set; }
         public string SettingsFile { get; private set; }
         public string ErrorLog { get; private set; }
+        private string legacySettingsFile;
 
         public static AppPaths Resolve(string executableDirectory)
         {
+            return Resolve(executableDirectory, Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+        }
+
+        internal static AppPaths Resolve(string executableDirectory, string localApplicationData)
+        {
             string folder = Path.GetFullPath(executableDirectory);
-            // Every copy is portable; no parent workspace or machine-specific path is used.
-            string support = Path.Combine(folder, "env");
+            string support = Path.Combine(Path.GetFullPath(localApplicationData), "CodexUsage");
             return new AppPaths {
                 SupportDirectory = support,
-                SettingsFile = Path.Combine(support, "config", "CodexQuotaLite", "settings.json"),
-                ErrorLog = Path.Combine(support, "logs", "CodexQuotaLite", "application.log")
+                SettingsFile = Path.Combine(support, "settings.json"),
+                ErrorLog = Path.Combine(support, "logs", "application.log"),
+                legacySettingsFile = Path.Combine(folder, "env", "config", "CodexQuotaLite", "settings.json")
             };
         }
 
@@ -26,6 +32,10 @@ namespace CodexQuotaLite
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile));
             Directory.CreateDirectory(Path.GetDirectoryName(ErrorLog));
             Directory.CreateDirectory(Path.Combine(SupportDirectory, "tmp", "CodexQuotaLite"));
+            // Import only known settings, never logs, credentials or arbitrary files.
+            // Keep the old directory intact; it may contain unrelated user files.
+            if (!File.Exists(SettingsFile) && File.Exists(legacySettingsFile))
+                new SettingsStore(SettingsFile).Save(new SettingsStore(legacySettingsFile).Load());
         }
     }
 }

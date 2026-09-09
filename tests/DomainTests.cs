@@ -29,18 +29,30 @@ internal static class DomainTests
         Run("设置保存后会清理和规范化值", SettingsRoundTripSanitizesValues);
         Run("旧尺寸恢复100且语言偏好可保存", LegacyScaleAndLanguagePreference);
         Run("设置替换失败时保留原文件", FailedAtomicSavePreservesExistingFile);
-        Run("便携目录支持空格与非英文名称", PortablePathsSupportSpacesAndUnicode);
-        Run("便携设置不使用父目录的开发环境", PortablePathsIgnoreAncestorWorkspace);
-        Run("运行目录仅在程序相邻位置创建", PortablePreparationStaysBesideExecutable);
+        Run("应用数据路径支持空格与非英文名称", PortablePathsSupportSpacesAndUnicode);
+        Run("移动EXE后沿用同一用户设置", PortablePathsIgnoreAncestorWorkspace);
+        Run("启动不在EXE旁创建运行目录", PortablePreparationStaysBesideExecutable);
         Run("畸形响应只返回安全错误", MalformedEnvelopesStaySafe);
         Run("错误字段类型不伪造额度", WrongFieldTypesRemainUnknown);
         Run("区域格式不改变数字含义", NumericParsingIsCultureIndependent);
         Run("等价时区和重置秒边界一致", EquivalentTimeZonesAndResetSeconds);
         Run("未知套餐保留名称且不增加窗口", UnknownPlanKeepsActualWindows);
         Run("额度与时间比例连续变化且有界", RemainingValuesAreBoundedAndMonotonic);
+        Run("默认运行数据不污染EXE目录", DefaultDataRootIsUnderLocalAppData);
+        Run("迁移旧偏好但不复制无关数据", LegacySettingsAreMigratedSelectively);
+        Run("已有用户设置不会被旧版本覆盖", CurrentSettingsWinOverLegacy);
+        Run("鼠标跨越间隙及返回窗口不会误收起", HoverDelayAllowsCrossingAndReturn);
+        Run("操作菜单时不自动收起", HoverDelayRespectsMenusAndHiddenState);
+        Run("任务栏单次隐藏读数不会导致闪烁", TaskbarVisibilityFiltersTransientReadings);
 
         Console.WriteLine("RESULT: {0} passed, {1} failed", testsRun - failures, failures);
         return failures == 0 ? 0 : 1;
+    }
+
+    private static void DefaultDataRootIsUnderLocalAppData()
+    {
+        AppPaths paths = AppPaths.Resolve(Path.Combine(Path.GetTempPath(), "desktop application"));
+        Equal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexUsage"), paths.SupportDirectory, "Runtime files belong to user application data");
     }
 
     private static void MalformedEnvelopesStaySafe()
@@ -132,9 +144,10 @@ internal static class DomainTests
     private static void PortablePathsSupportSpacesAndUnicode()
     {
         string folder = Path.Combine(Path.GetTempPath(), "portable path 示例", "application");
-        AppPaths paths = AppPaths.Resolve(folder);
-        Equal(Path.Combine(Path.GetFullPath(folder), "env"), paths.SupportDirectory, "Support directory follows the executable");
-        Equal(Path.Combine(paths.SupportDirectory, "config", "CodexQuotaLite", "settings.json"), paths.SettingsFile, "Settings remain portable");
+        string userData = Path.Combine(Path.GetTempPath(), "user data 示例");
+        AppPaths paths = AppPaths.Resolve(folder, userData);
+        Equal(Path.Combine(userData, "CodexUsage"), paths.SupportDirectory, "Support directory follows user data");
+        Equal(Path.Combine(paths.SupportDirectory, "settings.json"), paths.SettingsFile, "Settings are centralized");
     }
 
     private static void PortablePathsIgnoreAncestorWorkspace()
@@ -146,9 +159,10 @@ internal static class DomainTests
             Directory.CreateDirectory(Path.Combine(root, "env"));
             string folder = Path.Combine(root, "nested application");
             Directory.CreateDirectory(folder);
-            Equal(Path.Combine(folder, "env"), AppPaths.Resolve(folder).SupportDirectory, "Parent workspace must not capture settings");
+            string userData = Path.Combine(root, "user data");
+            Equal(Path.Combine(userData, "CodexUsage"), AppPaths.Resolve(folder, userData).SupportDirectory, "Parent workspace must not capture settings");
             string second = Path.Combine(root, "other application");
-            Equal(Path.Combine(second, "env"), AppPaths.Resolve(second).SupportDirectory, "Each portable copy has its own settings location");
+            Equal(AppPaths.Resolve(folder, userData).SettingsFile, AppPaths.Resolve(second, userData).SettingsFile, "Moving the EXE keeps user preferences");
         }
         finally { Directory.Delete(root, true); }
     }
@@ -159,14 +173,84 @@ internal static class DomainTests
         try
         {
             string folder = Path.Combine(root, "application 示例");
-            AppPaths paths = AppPaths.Resolve(folder);
+            AppPaths paths = AppPaths.Resolve(folder, Path.Combine(root, "user data"));
             paths.Prepare();
             True(Directory.Exists(Path.GetDirectoryName(paths.SettingsFile)), "Settings directory is created");
             True(Directory.Exists(Path.GetDirectoryName(paths.ErrorLog)), "Log directory is created");
-            True(Directory.Exists(Path.Combine(folder, "env", "tmp", "CodexQuotaLite")), "Temporary directory is beside executable");
+            True(Directory.Exists(Path.Combine(paths.SupportDirectory, "tmp", "CodexQuotaLite")), "Temporary files stay in user data");
+            False(Directory.Exists(folder), "No write to executable directory is needed");
             False(Directory.Exists(Path.Combine(root, "env")), "No ancestor environment is created");
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    private static void LegacySettingsAreMigratedSelectively()
+    {
+        string root = CreateTestDirectory();
+        try
+        {
+            string app = Path.Combine(root, "application");
+            string legacy = Path.Combine(app, "env", "config", "CodexQuotaLite", "settings.json");
+            True(new SettingsStore(legacy).Save(new AppSettings { Language = "en", SelectedWindowId = "codex:secondary" }), "Legacy settings saved");
+            File.WriteAllText(Path.Combine(app, "env", "unrelated.txt"), "keep this file");
+            AppPaths paths = AppPaths.Resolve(app, Path.Combine(root, "local"));
+            paths.Prepare();
+            AppSettings settings = new SettingsStore(paths.SettingsFile).Load();
+            Equal("en", settings.Language, "Language migrates");
+            Equal("codex:secondary", settings.SelectedWindowId, "Selected window migrates");
+            True(File.Exists(legacy), "Legacy settings remain intact");
+            False(File.Exists(Path.Combine(paths.SupportDirectory, "unrelated.txt")), "No arbitrary files copied");
+            True(File.Exists(Path.Combine(app, "env", "unrelated.txt")), "Unrelated files not removed");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private static void CurrentSettingsWinOverLegacy()
+    {
+        string root = CreateTestDirectory();
+        try
+        {
+            string app = Path.Combine(root, "application");
+            AppPaths paths = AppPaths.Resolve(app, Path.Combine(root, "local"));
+            True(new SettingsStore(Path.Combine(app, "env", "config", "CodexQuotaLite", "settings.json")).Save(new AppSettings { Language = "en" }), "Legacy settings saved");
+            True(new SettingsStore(paths.SettingsFile).Save(new AppSettings { Language = "zh" }), "Current settings saved");
+            paths.Prepare();
+            Equal("zh", new SettingsStore(paths.SettingsFile).Load().Language, "Never overwrite current preferences");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private static void HoverDelayAllowsCrossingAndReturn()
+    {
+        var state = new HoverDismissState();
+        DateTimeOffset now = Utc(2026, 9, 9, 0, 0, 0);
+        False(state.ShouldDismiss(now, true, false, false), "Leaving starts the grace period");
+        False(state.ShouldDismiss(now.AddMilliseconds(300), true, false, false), "Crossing the gap is allowed");
+        False(state.ShouldDismiss(now.AddMilliseconds(400), true, true, false), "Entering the details resets the timer");
+        False(state.ShouldDismiss(now.AddMilliseconds(700), true, false, false), "Next departure starts fresh");
+        True(state.ShouldDismiss(now.AddMilliseconds(1200), true, false, false), "Staying outside hides details");
+    }
+
+    private static void HoverDelayRespectsMenusAndHiddenState()
+    {
+        var state = new HoverDismissState();
+        DateTimeOffset now = Utc(2026, 9, 9, 0, 0, 0);
+        False(state.ShouldDismiss(now, true, false, true), "Menu interaction keeps details open");
+        False(state.ShouldDismiss(now.AddSeconds(5), true, false, true), "No timeout while using a menu");
+        False(state.ShouldDismiss(now.AddSeconds(6), false, false, false), "Hidden state clears the deadline");
+        False(state.ShouldDismiss(now.AddSeconds(7), true, false, false), "Reopening does not instantly hide");
+        True(state.ShouldDismiss(now.AddSeconds(8), true, false, false), "New departure can expire");
+    }
+
+    private static void TaskbarVisibilityFiltersTransientReadings()
+    {
+        var state = new TaskbarVisibilityState();
+        True(state.Observe(true), "Visible bar shows widget");
+        True(state.Observe(false), "One hidden reading does not blink the widget");
+        True(state.Observe(true), "Recovery clears the hidden count");
+        True(state.Observe(false), "New transient reading is tolerated");
+        False(state.Observe(false), "Sustained hiding is respected");
+        True(state.Observe(true), "Reappearance is immediate");
     }
 
     private static void PlusUsesReturnedStandardWindowsWithoutSpark()

@@ -39,6 +39,7 @@ namespace CodexQuotaLite
             }
         }
         internal bool IsDroppedDown { get { return popup != null && popup.Visible; } }
+        internal bool DropDownContains(Point point) { return IsDroppedDown && popup.Bounds.Contains(point); }
 
         internal UiDarkChoice()
         {

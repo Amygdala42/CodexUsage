@@ -23,6 +23,9 @@ namespace CodexQuotaLite
         private readonly System.Windows.Forms.Timer refreshTimer;
         private readonly System.Windows.Forms.Timer clockTimer;
         private readonly System.Windows.Forms.Timer taskbarTimer;
+        private readonly System.Windows.Forms.Timer hoverTimer;
+        private readonly HoverDismissState hoverDismiss = new HoverDismissState();
+        private readonly TaskbarVisibilityState taskbarVisibility = new TaskbarVisibilityState();
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly Dictionary<string, DateTimeOffset> resetRefreshAttempts = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
         private QuotaSnapshot snapshot;
@@ -35,6 +38,8 @@ namespace CodexQuotaLite
         private Rectangle currentTaskbar;
         private int appliedTaskbarScale;
         private bool initialized;
+        private ForegroundMonitor foregroundMonitor;
+        private bool taskbarUpdateQueued;
 
         public QuotaApplicationContext(IQuotaSource quotaSource, SettingsStore settingsStore, AppSettings appSettings, Action<Rectangle, Rectangle, Rectangle> observePlacement = null)
         {
@@ -70,6 +75,8 @@ namespace CodexQuotaLite
             menu.Items.Add(new ToolStripMenuItem("退出", null, delegate { ExitThread(); }));
             menu.Opening += delegate { visibilityItem.Text = widgetEnabled ? UiText.T("隐藏额度条", "Hide widget") : UiText.T("显示额度条", "Show widget"); refreshItem.Enabled = !busy; };
             widget.ContextMenuStrip = menu;
+            menu.Closed += delegate { QueueTaskbarUpdate(); };
+            details.Deactivate += delegate { QueueTaskbarUpdate(); };
             trayIcon = Theme.CreateIcon();
             tray = new NotifyIcon();
             tray.Icon = trayIcon;
@@ -86,13 +93,37 @@ namespace CodexQuotaLite
             taskbarTimer = new System.Windows.Forms.Timer();
             taskbarTimer.Interval = 1000;
             taskbarTimer.Tick += delegate { UpdateTaskbar(); };
+            hoverTimer = new System.Windows.Forms.Timer();
+            hoverTimer.Interval = 100;
+            hoverTimer.Tick += delegate {
+                Point pointer = Cursor.Position;
+                widget.TrackHintPointer(pointer);
+                bool inside = (widget.Visible && widget.Bounds.Contains(pointer)) || details.ContainsPointer(pointer);
+                if (hoverDismiss.ShouldDismiss(DateTimeOffset.UtcNow, details.Visible, inside, menu.Visible)) details.Hide();
+            };
             refreshTimer.Start();
             clockTimer.Start();
             taskbarTimer.Start();
+            hoverTimer.Start();
             Render();
             widget.Show();
             initialized = true;
+            foregroundMonitor = new ForegroundMonitor(QueueTaskbarUpdate);
             UpdateTaskbar();
+        }
+
+        private void QueueTaskbarUpdate()
+        {
+            if (stopping || !initialized || taskbarUpdateQueued || widget.IsDisposed) return;
+            taskbarUpdateQueued = true;
+            try
+            {
+                widget.BeginInvoke((MethodInvoker)delegate {
+                    taskbarUpdateQueued = false;
+                    if (!stopping) UpdateTaskbar();
+                });
+            }
+            catch (InvalidOperationException) { taskbarUpdateQueued = false; }
         }
 
         private void RestorePosition()
@@ -122,7 +153,7 @@ namespace CodexQuotaLite
                 if (placementObserver != null) placementObserver(taskbar, notification, placement);
             }
             if (!initialized) return true;
-            bool show = widgetEnabled && (visible || details.Visible) && !TaskbarPlacement.ForegroundIsFullscreen(widget.Handle, details.IsHandleCreated ? details.Handle : IntPtr.Zero);
+            bool show = widgetEnabled && (taskbarVisibility.Observe(visible) || details.Visible) && !TaskbarPlacement.ForegroundIsFullscreen(widget.Handle, details.IsHandleCreated ? details.Handle : IntPtr.Zero);
             if (show && !widget.Visible) widget.Show();
             else if (!show && widget.Visible) { widget.Hide(); details.Hide(); }
             if (show) TaskbarPlacement.KeepAboveTaskbar(widget.Handle);
@@ -240,7 +271,9 @@ namespace CodexQuotaLite
         {
             if (stopping) return;
             stopping = true;
+            if (foregroundMonitor != null) foregroundMonitor.Dispose();
             refreshTimer.Stop(); clockTimer.Stop(); taskbarTimer.Stop();
+            hoverTimer.Stop();
             cancellation.Cancel();
             tray.Visible = false;
             details.Shutdown();
@@ -261,6 +294,7 @@ namespace CodexQuotaLite
                 disposed = true;
                 Stop();
                 refreshTimer.Dispose(); clockTimer.Dispose(); taskbarTimer.Dispose();
+                hoverTimer.Dispose();
                 tray.Dispose(); trayIcon.Dispose(); menu.Dispose();
                 details.Dispose(); widget.Dispose();
                 cancellation.Dispose();

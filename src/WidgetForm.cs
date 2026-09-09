@@ -13,6 +13,8 @@ namespace CodexQuotaLite
         private bool busy;
         private string error;
         private readonly ToolTip tip = new ToolTip();
+        private string hintText = String.Empty;
+        private bool hintSuppressed;
         public event EventHandler DetailRequested;
 
         public WidgetForm()
@@ -28,6 +30,15 @@ namespace CodexQuotaLite
             DoubleBuffered = true;
             KeyPreview = true;
             Cursor = Cursors.Hand;
+            tip.ShowAlways = true;
+            tip.InitialDelay = 300;
+            tip.ReshowDelay = 300;
+            tip.Active = false;
+            tip.Popup += delegate(object sender, PopupEventArgs e) {
+                e.Cancel = hintSuppressed || !Visible || !Bounds.Contains(Cursor.Position)
+                    || Control.MouseButtons != MouseButtons.None
+                    || (ContextMenuStrip != null && ContextMenuStrip.Visible);
+            };
             ApplyScale(100);
         }
 
@@ -63,7 +74,8 @@ namespace CodexQuotaLite
             string status = UiText.Plan(plan) + ". " + (window == null ? UiText.T("尚无额度数据", "No usage data") : pending ? UiText.WindowLabel(window.Label) + UiText.T("，已到重置时间，待更新", ", reset reached; awaiting update") : UiText.WindowLabel(window.Label) + UiText.T("，剩余额度 ", ", remaining ") + Theme.Percent(window.RemainingPercent) + ", " + Theme.ResetText(window, DateTimeOffset.UtcNow)) + ". ";
             if (stale) status += UiText.T("上次结果已过期。", "The previous result is out of date. ");
             if (!String.IsNullOrEmpty(error)) status += UiText.Error(error);
-            tip.SetToolTip(this, status + UiText.T("\n单击查看详情 · 右键打开菜单", "\nClick for details · Right-click for menu"));
+            hintText = status + UiText.T("\n单击查看详情 · 右键打开菜单", "\nClick for details · Right-click for menu");
+            if (tip.Active && !hintSuppressed) tip.SetToolTip(this, hintText);
             AccessibleDescription = status;
             Present();
         }
@@ -76,13 +88,48 @@ namespace CodexQuotaLite
             using (Bitmap image = RenderImage()) LayeredSurface.Present(this, image);
         }
         protected override void OnShown(EventArgs e) { base.OnShown(e); Present(); }
-        protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); if (Visible) Present(); }
+        protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); if (Visible) Present(); else DismissHint(); }
+        private void DismissHint()
+        {
+            tip.Active = false;
+            if (IsHandleCreated) tip.Hide(this);
+        }
+        internal void TrackHintPointer(Point pointer)
+        {
+            if (!Visible || !Bounds.Contains(pointer))
+            {
+                hintSuppressed = false;
+                if (tip.Active) DismissHint();
+            }
+        }
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            if (hintSuppressed || Control.MouseButtons != MouseButtons.None) return;
+            tip.SetToolTip(this, hintText);
+            tip.Active = true;
+        }
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            DismissHint();
+            // A menu can take mouse tracking without the pointer physically leaving.
+            if (!Bounds.Contains(Cursor.Position)) hintSuppressed = false;
+            base.OnMouseLeave(e);
+        }
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            hintSuppressed = true;
+            DismissHint();
+            base.OnMouseDown(e);
+        }
         protected override void OnPaint(PaintEventArgs e)
         { using (Bitmap image = RenderImage()) e.Graphics.DrawImageUnscaled(image, 0, 0); }
+        protected override void OnPaintBackground(PaintEventArgs e) { /* The layered surface supplies the complete frame. */ }
         protected override void OnMouseClick(MouseEventArgs e)
         { base.OnMouseClick(e); if (e.Button == MouseButtons.Left && DetailRequested != null) DetailRequested(this, EventArgs.Empty); }
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            DismissHint();
             base.OnKeyDown(e);
             if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space)
             { e.Handled = true; if (DetailRequested != null) DetailRequested(this, EventArgs.Empty); }

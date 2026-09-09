@@ -43,7 +43,7 @@ namespace CodexQuotaLite
                 DrawDisk(g, new RectangleF(7, 23, 14, 14), window == null ? null : window.GetTimeRemainingPercent(now), stale ? Theme.Muted : TimeColor);
                 string amount = pending ? UiText.T("待更新", "Wait") : window == null ? "—" : Theme.Percent(window.RemainingPercent);
                 DrawText(g, amount, new RectangleF(28, 0, width - 35, 20), ValueFontSize, FontStyle.Bold, Theme.Text);
-                string time = busy ? UiText.T("更新中", "Sync") : !String.IsNullOrEmpty(error) ? UiText.T("失败", "Retry") : stale ? UiText.T("已过期", "Stale") : CompactTime(window, now);
+                string time = busy && window == null ? UiText.T("更新中", "Sync") : !String.IsNullOrEmpty(error) ? UiText.T("失败", "Retry") : stale ? UiText.T("已过期", "Stale") : CompactTime(window, now);
                 DrawText(g, time, new RectangleF(28, 20, width - 35, 20), ValueFontSize, FontStyle.Bold, stale || !String.IsNullOrEmpty(error) ? Theme.Warning : TimeColor);
                 g.ResetTransform();
                 return Reduce(large, size);

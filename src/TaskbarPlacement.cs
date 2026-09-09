@@ -97,4 +97,43 @@ namespace CodexQuotaLite
             SetWindowPos(window, new IntPtr(-1), 0, 0, 0, 0, 0x0013);
         }
     }
+
+    // Out-of-context notifications run on our UI thread; no code is injected
+    // into Explorer and no keyboard or mouse input is intercepted.
+    internal sealed class ForegroundMonitor : IDisposable
+    {
+        private delegate void WinEventCallback(IntPtr hook, uint eventType, IntPtr window,
+            int objectId, int childId, uint threadId, uint time);
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetWinEventHook(uint first, uint last, IntPtr module,
+            WinEventCallback callback, uint process, uint thread, uint flags);
+        [DllImport("user32.dll")]
+        private static extern bool UnhookWinEvent(IntPtr hook);
+        private IntPtr hook;
+        private GCHandle callbackRoot;
+        private bool disposed;
+
+        internal ForegroundMonitor(Action changed)
+        {
+            WinEventCallback callback = delegate {
+                if (!disposed) changed();
+            };
+            callbackRoot = GCHandle.Alloc(callback);
+            // EVENT_SYSTEM_FOREGROUND, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS.
+            hook = SetWinEventHook(3, 3, IntPtr.Zero, callback, 0, 0, 2);
+            // If hooks are unavailable, the existing timer remains a fallback.
+            if (hook == IntPtr.Zero) callbackRoot.Free();
+        }
+
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            if (hook != IntPtr.Zero)
+            {
+                if (UnhookWinEvent(hook) && callbackRoot.IsAllocated) callbackRoot.Free();
+                hook = IntPtr.Zero;
+            }
+        }
+    }
 }

@@ -25,8 +25,8 @@ Output: `env/build/CodexUsage.exe`, with the license and dependency notices embe
 
 ## 运行 / Run
 
-将 EXE 放在可写目录。设置和运行数据保存在 EXE 相邻的 `env/`；直接运行构建产物时，对应位置为 `env/build/env/`。
+运行 EXE。设置和运行数据保存在 `%LOCALAPPDATA%\CodexUsage`，不再写入程序所在目录。
 
-Place the EXE in a writable directory. Settings and runtime data are stored in the adjacent `env/` directory.
+Run the EXE. Settings and runtime data are stored in `%LOCALAPPDATA%\CodexUsage`, outside the program directory.
 
 参见 [测试 / Testing](TESTING.md) 与 [隐私 / Privacy](PRIVACY.md)。

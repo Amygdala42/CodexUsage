@@ -26,7 +26,7 @@ try {
     $env:TEMP = $outputRoot
     $env:TMP = $outputRoot
     if ($Suite -eq 'Domain' -or $Suite -eq 'All') {
-        $inputs = @('QuotaModels.cs','QuotaParser.cs','AppSettings.cs','AppPaths.cs') | ForEach-Object { Join-Path $sourceRoot $_ }
+        $inputs = @('QuotaModels.cs','QuotaParser.cs','AppSettings.cs','AppPaths.cs','InteractionState.cs') | ForEach-Object { Join-Path $sourceRoot $_ }
         $domain = Build-Check 'DomainTests' (@((Join-Path $testRoot 'DomainTests.cs')) + $inputs)
         if (-not $BuildOnly) {
             & $domain
