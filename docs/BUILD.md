@@ -30,3 +30,13 @@ Output: `env/build/CodexUsage.exe`, with the license and dependency notices embe
 Run the EXE. Settings and runtime data are stored in `%LOCALAPPDATA%\CodexUsage`, outside the program directory.
 
 参见 [测试 / Testing](TESTING.md) 与 [隐私 / Privacy](PRIVACY.md)。
+
+## 文档示意图 / Documentation previews
+
+可选：使用 Python 3、Pillow 和 Windows Microsoft YaHei 字体重绘四张中英文示意图。此步骤不运行应用，版本号从源码读取，数据为合成值；Python/Pillow 不属于应用运行依赖。
+
+Optional: regenerate the four bilingual illustrations with Python 3, Pillow and Windows Microsoft YaHei fonts. The script reads the version from source and uses synthetic data; it does not run the app. Python and Pillow are not app runtime dependencies.
+
+```powershell
+python scripts/render-previews.py assets
+```

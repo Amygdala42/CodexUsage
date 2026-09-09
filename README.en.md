@@ -19,7 +19,7 @@ For Windows x64.
 
 ## Examples
 
-Example data; available quota windows depend on the account's actual response.
+Illustrations of the v1.0.2 layout with example data; available quota windows depend on the account's actual response.
 
 ### Plus
 
