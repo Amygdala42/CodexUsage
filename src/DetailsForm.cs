@@ -11,6 +11,8 @@ namespace CodexQuotaLite
   private string plan;
   private readonly Panel cards = new Panel();
   private readonly Label status = new Label(), updated = new Label();
+  private readonly LinkLabel github = new LinkLabel();
+  private readonly Label version = new Label();
   private readonly Button refresh = new Button(), close = new Button(), languageChoice = new Button();
   private readonly UiDarkChoice windowChoice = new UiDarkChoice();
   private readonly ToolTip tip = new ToolTip();
@@ -33,6 +35,18 @@ namespace CodexQuotaLite
    FormBorderStyle=FormBorderStyle.None;StartPosition=FormStartPosition.Manual;ShowInTaskbar=false;
    AutoScaleMode=AutoScaleMode.None;BackColor=Theme.Background;DoubleBuffered=true;KeyPreview=true;
    cards.AutoScroll=false;cards.BackColor=Theme.Background;
+   github.Text=UiText.T("GITHUB主页","GITHUB");github.LinkColor=Theme.Blue;github.ActiveLinkColor=Theme.Aqua;
+   github.VisitedLinkColor=Theme.Blue;github.LinkBehavior=LinkBehavior.HoverUnderline;
+   github.TextAlign=ContentAlignment.MiddleCenter;github.Cursor=Cursors.Hand;
+   github.UseCompatibleTextRendering=false;
+   github.LinkClicked+=delegate{
+    try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/Amygdala42/CodexUsage"){UseShellExecute=true});}
+    catch(System.ComponentModel.Win32Exception){ShowLinkError();}
+    catch(InvalidOperationException){ShowLinkError();}
+   };
+   version.Text="v"+typeof(DetailsForm).Assembly.GetName().Version.ToString(3);
+   version.ForeColor=Theme.Muted;version.TextAlign=ContentAlignment.MiddleCenter;
+   version.UseCompatibleTextRendering=false;
    SetupButton(close);close.Text="×";close.Click+=delegate{Hide();};
    SetupButton(refresh);refresh.Click+=delegate{if(RefreshRequested!=null)RefreshRequested(this,EventArgs.Empty);};
    SetupButton(languageChoice);languageChoice.Click+=delegate{
@@ -43,18 +57,19 @@ namespace CodexQuotaLite
    status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=true;
    status.TextAlign=ContentAlignment.MiddleLeft;updated.TextAlign=ContentAlignment.MiddleLeft;
    windowChoice.BackColor=Theme.Card;windowChoice.ForeColor=Theme.Text;
-   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice});
+   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice,github,version});
    windowChoice.SelectedIndexChanged+=delegate{if(!binding&&SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);};
    ApplyScale(100);SetState(null,null,false,false,null,null);
   }
   private static void SetupButton(Button button){button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderColor=Theme.Border;button.FlatAppearance.MouseOverBackColor=Theme.Border;button.BackColor=Theme.Card;button.ForeColor=Theme.Text;button.Cursor=Cursors.Hand;}
+  private void ShowLinkError(){MessageBox.Show(this,UiText.T("无法打开浏览器。项目主页：https://github.com/Amygdala42/CodexUsage","Could not open your browser. Project page: https://github.com/Amygdala42/CodexUsage"),UiText.AppName,MessageBoxButtons.OK,MessageBoxIcon.Information);}
   public void ApplyScale(int ignoredLegacyPercent){using(Graphics g=CreateGraphics())preferredScale=g.DpiX/96f;FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);}
   private void FitToWorkingArea(Rectangle area)
   {
    windowChoice.CloseDropDown();
    scale=Math.Min(preferredScale,Math.Min(Math.Max(1,area.Width-12)/360f,Math.Max(1,area.Height-12)/LogicalHeight));
    ClientSize=new Size(Math.Max(1,(int)Math.Floor(360*scale)),Math.Max(1,(int)Math.Floor(LogicalHeight*scale)));
-   foreach(Control control in Controls){Font previous=control.Font;Font next=new Font("Microsoft YaHei UI",(control==status||control==updated?10:11)*scale,FontStyle.Regular,GraphicsUnit.Pixel);if(next.Equals(previous))next.Dispose();else{control.Font=next;if(previous!=Font&&previous!=SystemFonts.DefaultFont)previous.Dispose();}}
+   foreach(Control control in Controls){Font previous=control.Font;Font next=new Font("Microsoft YaHei UI",(control==github||control==version?12:control==status||control==updated?10:11)*scale,FontStyle.Regular,GraphicsUnit.Pixel);if(next.Equals(previous))next.Dispose();else{control.Font=next;if(previous!=Font&&previous!=SystemFonts.DefaultFont)previous.Dispose();}}
    windowChoice.ItemHeight=(int)(21*scale);LayoutControls();Invalidate();
   }
   protected override void OnSizeChanged(EventArgs e)
@@ -67,6 +82,7 @@ namespace CodexQuotaLite
   private void LayoutControls()
   {
    Box(close,309,17,31,29);Box(cards,20,84,320,CardsHeight);
+   Box(version,176,18,43,28);Box(github,222,18,82,28);
    Box(languageChoice,20,ChoiceY,76,28);Box(windowChoice,108,ChoiceY,232,28);
    Box(status,20,FooterY,124,28);Box(updated,148,FooterY,112,28);Box(refresh,268,FooterY,72,28);
    for(int i=0;i<cards.Controls.Count;i++){UiQuotaCard card=(UiQuotaCard)cards.Controls[i];card.ScaleFactor=scale;card.Bounds=Rectangle.Round(new RectangleF(0,i*82*scale,320*scale,74*scale));}
@@ -76,6 +92,8 @@ namespace CodexQuotaLite
    lastSnapshot=snapshot;lastSelectedId=selectedId;lastStale=stale;lastBusy=busy;lastMessage=message;lastSettingsMessage=settingsMessage;
    plan=snapshot==null||String.IsNullOrWhiteSpace(snapshot.PlanLabel)?UiText.T("套餐待获取","Plan unavailable"):UiText.Plan(snapshot.PlanLabel);
    Text=UiText.T("CodexUsage · 详情","CodexUsage");AccessibleName=UiText.T("CodexUsage详情和显示窗口选择","CodexUsage details and widget selection");
+   github.Text=UiText.T("GITHUB主页","GITHUB");github.AccessibleName=UiText.T("打开 GitHub 项目主页","Open the GitHub project page");tip.SetToolTip(github,github.AccessibleName);
+   version.AccessibleName=UiText.T("版本 ","Version ")+version.Text;
    cards.AccessibleName=UiText.T("全部额度窗口","All usage windows");close.AccessibleName=UiText.T("关闭详情","Close details");
    languageChoice.Text=UiText.T("English","中文");languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
    windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");tip.SetToolTip(windowChoice,windowChoice.AccessibleName);
@@ -109,7 +127,7 @@ namespace CodexQuotaLite
   {
    base.OnPaint(e);Graphics g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
    Theme.Rounded(g,new RectangleF(.5f,.5f,Width-1,Height-1),18*scale,Theme.Background,Theme.Border);
-   Theme.Write(g,UiText.AppName,21,18,275,28,22,Theme.Text,true,scale);Theme.Write(g,UiText.T("账号套餐","Account plan"),22,52,83,17,10,Theme.Muted,false,scale);
+   Theme.Write(g,UiText.AppName,21,18,153,28,22,Theme.Text,true,scale);Theme.Write(g,UiText.T("账号套餐","Account plan"),22,52,83,17,10,Theme.Muted,false,scale);
    Theme.Rounded(g,new RectangleF(108*scale,51*scale,180*scale,21*scale),7*scale,Theme.Card,null);Theme.Write(g,plan,117,51,163,21,11,Theme.Aqua,true,scale);
    using(Pen p=new Pen(Theme.Border))g.DrawLine(p,20*scale,(FooterY-8)*scale,340*scale,(FooterY-8)*scale);
    if(cards.Controls.Count==0)Theme.Write(g,UiText.T("额度信息将在读取成功后显示","Usage appears after a successful refresh"),30,94,300,42,11,Theme.Muted,false,scale);

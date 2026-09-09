@@ -4,7 +4,7 @@
 
 A lightweight Windows widget for Codex quota and reset time, next to the notification area.
 
-**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.1/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
+**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.2/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
 
 For Windows x64.
 
@@ -36,7 +36,7 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 1. Download `CodexUsage.exe` from Releases, or download and extract `CodexUsage-Windows-x64.zip`.
 2. Run `CodexUsage.exe`. Click the widget for details; move the pointer away to dismiss them.
 
-Hover for a quick summary; move away or click to dismiss it. Right-click for the menu.
+Hover for a quick summary; move away or click to dismiss it. Right-click for the menu. The detail header shows the version and a link to the GitHub project.
 
 To update, exit the old version from the tray, then replace the EXE. Settings live in `%LOCALAPPDATA%\CodexUsage`; existing settings beside the EXE are imported on first run.
 

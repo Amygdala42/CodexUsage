@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2 — 2026-09-09
+
+- 详情标题右侧新增版本号和 GitHub 主页链接。
+  Add the version and a GitHub project link beside the detail title.
+- 调整标题行对齐与链接宽度，完整显示“GITHUB主页”。
+  Align the header text and give the project link enough room.
+
 ## 1.0.1 — 2026-09-09
 
 - 额度条说明支持未激活窗口悬停显示；移开或按下鼠标立即关闭，点击后需要移出再悬停才重新显示。

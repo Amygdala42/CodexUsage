@@ -9,8 +9,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Codex plan, quota and reset time widget")]
 [assembly: AssemblyCompany("Amygdala42")]
 [assembly: AssemblyProduct("CodexUsage")]
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyVersion("1.0.2.0")]
+[assembly: AssemblyFileVersion("1.0.2.0")]
 
 namespace CodexQuotaLite
 {
