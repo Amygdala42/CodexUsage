@@ -1,0 +1,92 @@
+﻿using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace CodexQuotaLite
+{
+    public sealed class WidgetForm : Form
+    {
+        private float scale = 1;
+        private QuotaWindow window;
+        private string plan = "Codex";
+        private bool stale;
+        private bool busy;
+        private string error;
+        private readonly ToolTip tip = new ToolTip();
+        public event EventHandler DetailRequested;
+
+        public WidgetForm()
+        {
+            Text = UiText.AppName;
+            AccessibleName = UiText.T("CodexUsage，单击查看详情", "CodexUsage, click for details");
+            AccessibleRole = AccessibleRole.PushButton;
+            FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.Manual;
+            AutoScaleMode = AutoScaleMode.None;
+            BackColor = WidgetRenderer.Surface;
+            DoubleBuffered = true;
+            KeyPreview = true;
+            Cursor = Cursors.Hand;
+            ApplyScale(100);
+        }
+
+        protected override CreateParams CreateParams
+        { get { var value = base.CreateParams; value.ExStyle |= 0x00080000 | 0x00000080; return value; } }
+        protected override bool ShowWithoutActivation { get { return true; } }
+
+        public void ApplyScale(int percent)
+        {
+            using (Graphics g = CreateGraphics()) scale = g.DpiX / 96f * percent / 100f;
+            ApplyDimensions();
+        }
+        public void ApplyTaskbarScale(int percent, Rectangle taskbar)
+        {
+            using (Graphics g = CreateGraphics()) scale = g.DpiX / 96f * percent / 100f;
+            scale = Math.Max(.15f, Math.Min(scale, Math.Min((taskbar.Width - 6) / (float)WidgetRenderer.LogicalWidth, (taskbar.Height - 6) / (float)WidgetRenderer.LogicalHeight)));
+            ApplyDimensions();
+        }
+        private void ApplyDimensions()
+        {
+            ClientSize = new Size(Math.Max(1, (int)Math.Round(WidgetRenderer.LogicalWidth * scale)), Math.Max(1, (int)Math.Round(WidgetRenderer.LogicalHeight * scale)));
+            Present();
+        }
+
+        public void SetState(QuotaWindow selected, string planLabel, bool expired, bool refreshing, string message)
+        {
+            window = selected;
+            Text = UiText.AppName;
+            AccessibleName = UiText.T("CodexUsage，单击查看详情", "CodexUsage, click for details");
+            plan = String.IsNullOrWhiteSpace(planLabel) ? "Codex" : planLabel;
+            stale = expired; busy = refreshing; error = message;
+            bool pending = window != null && window.IsResetPending(DateTimeOffset.UtcNow);
+            string status = UiText.Plan(plan) + ". " + (window == null ? UiText.T("尚无额度数据", "No usage data") : pending ? UiText.WindowLabel(window.Label) + UiText.T("，已到重置时间，待更新", ", reset reached; awaiting update") : UiText.WindowLabel(window.Label) + UiText.T("，剩余额度 ", ", remaining ") + Theme.Percent(window.RemainingPercent) + ", " + Theme.ResetText(window, DateTimeOffset.UtcNow)) + ". ";
+            if (stale) status += UiText.T("上次结果已过期。", "The previous result is out of date. ");
+            if (!String.IsNullOrEmpty(error)) status += UiText.Error(error);
+            tip.SetToolTip(this, status + UiText.T("\n单击查看详情 · 右键打开菜单", "\nClick for details · Right-click for menu"));
+            AccessibleDescription = status;
+            Present();
+        }
+
+        internal Bitmap RenderImage()
+        { return WidgetRenderer.Render(ClientSize, window, stale, busy, error, DateTimeOffset.UtcNow); }
+        private void Present()
+        {
+            if (!IsHandleCreated || !Visible || IsDisposed || ClientSize.Width < 1 || ClientSize.Height < 1) return;
+            using (Bitmap image = RenderImage()) LayeredSurface.Present(this, image);
+        }
+        protected override void OnShown(EventArgs e) { base.OnShown(e); Present(); }
+        protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); if (Visible) Present(); }
+        protected override void OnPaint(PaintEventArgs e)
+        { using (Bitmap image = RenderImage()) e.Graphics.DrawImageUnscaled(image, 0, 0); }
+        protected override void OnMouseClick(MouseEventArgs e)
+        { base.OnMouseClick(e); if (e.Button == MouseButtons.Left && DetailRequested != null) DetailRequested(this, EventArgs.Empty); }
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space)
+            { e.Handled = true; if (DetailRequested != null) DetailRequested(this, EventArgs.Empty); }
+        }
+        protected override void Dispose(bool disposing) { if (disposing) tip.Dispose(); base.Dispose(disposing); }
+    }
+}

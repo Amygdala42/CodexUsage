@@ -1,0 +1,19 @@
+# Generated build, test, preference and log data
+env/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.log
+*.zip
+*.user
+*.suo
+.vs/
+.env
+.env.*
+auth.json
+settings.json
+*credentials*
+Thumbs.db
+Desktop.ini
