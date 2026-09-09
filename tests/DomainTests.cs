@@ -32,9 +32,101 @@ internal static class DomainTests
         Run("便携目录支持空格与非英文名称", PortablePathsSupportSpacesAndUnicode);
         Run("便携设置不使用父目录的开发环境", PortablePathsIgnoreAncestorWorkspace);
         Run("运行目录仅在程序相邻位置创建", PortablePreparationStaysBesideExecutable);
+        Run("畸形响应只返回安全错误", MalformedEnvelopesStaySafe);
+        Run("错误字段类型不伪造额度", WrongFieldTypesRemainUnknown);
+        Run("区域格式不改变数字含义", NumericParsingIsCultureIndependent);
+        Run("等价时区和重置秒边界一致", EquivalentTimeZonesAndResetSeconds);
+        Run("未知套餐保留名称且不增加窗口", UnknownPlanKeepsActualWindows);
+        Run("额度与时间比例连续变化且有界", RemainingValuesAreBoundedAndMonotonic);
 
         Console.WriteLine("RESULT: {0} passed, {1} failed", testsRun - failures, failures);
         return failures == 0 ? 0 : 1;
+    }
+
+    private static void MalformedEnvelopesStaySafe()
+    {
+        string[] invalid = { "", "null", "[]", "42", "{", "{\"result\":null}",
+            "{\"result\":[]}", "{\"error\":{\"message\":\"fixture-private-message\"},\"result\":{}}" };
+        foreach (string value in invalid)
+        {
+            InvalidOperationException error = ThrowsInvalidOperation(delegate {
+                QuotaParser.Parse(Account("chatgpt", "plus"), value, DateTimeOffset.UtcNow);
+            });
+            DoesNotContain(error.Message, "fixture-private-message", "原始错误不可回显");
+        }
+    }
+
+    private static void WrongFieldTypesRemainUnknown()
+    {
+        string[] invalid = { "true", "false", "[]", "{}", "\"25\"", "null" };
+        foreach (string value in invalid)
+        {
+            string data = "{\"result\":{\"rateLimits\":{\"primary\":{\"usedPercent\":" + value +
+                ",\"windowDurationMins\":" + value + ",\"resetsAt\":" + value + "}}}}";
+            QuotaWindow window = QuotaParser.Parse(Account("chatgpt", "plus"), data, DateTimeOffset.UtcNow).Windows[0];
+            False(window.RemainingPercent.HasValue, "错误类型不能显示为100%或0%");
+            False(window.WindowMinutes.HasValue, "错误类型不能生成时长");
+            False(window.ResetsAtUtc.HasValue, "错误类型不能生成日期");
+        }
+    }
+
+    private static void NumericParsingIsCultureIndependent()
+    {
+        CultureInfo original = System.Threading.Thread.CurrentThread.CurrentCulture;
+        try
+        {
+            foreach (string culture in new[] { "zh-CN", "en-US", "de-DE", "fr-FR", "tr-TR" })
+            {
+                System.Threading.Thread.CurrentThread.CurrentCulture = new CultureInfo(culture);
+                string data = "{\"result\":{\"rateLimits\":{\"primary\":{\"usedPercent\":12.5,\"windowDurationMins\":300,\"resetsAt\":1800000000}}}}";
+                QuotaWindow window = QuotaParser.Parse(Account("chatgpt", "plus"), data, DateTimeOffset.UtcNow).Windows[0];
+                Equal(87.5, window.RemainingPercent.Value, culture + "小数含义");
+                Equal(300, window.WindowMinutes.Value, culture + "周期含义");
+            }
+        }
+        finally { System.Threading.Thread.CurrentThread.CurrentCulture = original; }
+    }
+
+    private static void EquivalentTimeZonesAndResetSeconds()
+    {
+        DateTimeOffset now = Utc(2026, 9, 9, 0, 0, 0);
+        QuotaWindow window = new QuotaWindow { WindowMinutes = 300, ResetsAtUtc = now.AddHours(1) };
+        foreach (int hours in new[] { -12, -5, 0, 8, 14 })
+        {
+            DateTimeOffset equivalent = now.ToOffset(TimeSpan.FromHours(hours));
+            Equal(20.0, window.GetTimeRemainingPercent(equivalent).Value, "同一时刻不受时区影响");
+            False(window.IsResetPending(equivalent.AddHours(1).AddSeconds(-1)), "重置前一秒");
+            True(window.IsResetPending(equivalent.AddHours(1)), "重置当秒");
+            Equal(0.0, window.GetTimeRemainingPercent(equivalent.AddHours(1).AddSeconds(1)).Value, "重置后一秒");
+        }
+    }
+
+    private static void UnknownPlanKeepsActualWindows()
+    {
+        QuotaSnapshot snapshot = QuotaParser.Parse(Account("chatgpt", "future-plan"), EmptyLimits(), DateTimeOffset.UtcNow);
+        Equal("future-plan", snapshot.PlanLabel, "未知套餐名不能伪装成Plus或Pro");
+        Equal(0, snapshot.Windows.Count, "未知套餐不能补造默认窗口");
+    }
+
+    private static void RemainingValuesAreBoundedAndMonotonic()
+    {
+        DateTimeOffset now = Utc(2026, 9, 9, 0, 0, 0);
+        QuotaWindow window = new QuotaWindow { WindowMinutes = 300, ResetsAtUtc = now.AddMinutes(300) };
+        double previousQuota = 100, previousTime = 100;
+        for (int step = -100; step <= 1000; step++)
+        {
+            window.UsedPercent = step / 5.0;
+            double quota = window.RemainingPercent.Value;
+            double time = window.GetTimeRemainingPercent(now.AddMinutes(step)).Value;
+            True(quota >= 0 && quota <= 100 && quota <= previousQuota, "用量增加时剩余额度不可增加或越界");
+            True(time >= 0 && time <= 100 && time <= previousTime, "时间推进时剩余比例不可增加或越界");
+            previousQuota = quota; previousTime = time;
+        }
+        foreach (double invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+        {
+            window.UsedPercent = invalid;
+            False(window.RemainingPercent.HasValue, "非有限数不可变成可用额度");
+        }
     }
 
     private static void PortablePathsSupportSpacesAndUnicode()
