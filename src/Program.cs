@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Drawing;
 using System.Reflection;
@@ -9,8 +9,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Codex plan, quota and reset time widget")]
 [assembly: AssemblyCompany("Amygdala42")]
 [assembly: AssemblyProduct("CodexUsage")]
-[assembly: AssemblyVersion("1.0.3.0")]
-[assembly: AssemblyFileVersion("1.0.3.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 
 namespace CodexQuotaLite
 {

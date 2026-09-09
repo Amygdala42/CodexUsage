@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.3 — 2026-09-09
+## 1.0.1 — 2026-09-09
 
 - 额度条说明支持未激活窗口悬停显示；移开或按下鼠标立即关闭，点击后需要移出再悬停才重新显示。
   Show the widget tooltip on hover without activation; dismiss it on pointer leave or mouse press, and suppress it until the pointer leaves after a click.
