@@ -39,6 +39,10 @@ Domain covers parsing, calculations, settings, and runtime data paths. Bridge la
 
 On 2026-09-09, **26 Domain checks and 8 Bridge checks passed, with no failures.** Six added Domain cases cover malformed responses, wrong field types, regional formats, time zones and reset boundaries, unknown plans, and bounded ratios including non-finite inputs. Domain was rerun; Bridge results are from the earlier run on the same day with unchanged product source.
 
-GUI 启动、完整交互、任务栏布局、不同 DPI 和真实账号集成尚未完成验证。EXE 未签名，本机曾出现 Windows 应用程序控制启动拦截。
+用户实测补充：当前发布的 1.0.0.0 已在一台 Windows 电脑上启动，运行文件 SHA256 与发行附件一致。截图确认 Pro 额度读取、每周额度与 Codex 显示一致、中英文详情布局以及通知区左侧的额度条位置。截图仅用于本地验收，未上传账号信息。
 
-GUI launch, complete interaction, taskbar placement, DPI behavior, and live-account integration remain unverified. The EXE is unsigned, and Windows application control has blocked launches on the test machine.
+User testing confirmed that the published 1.0.0.0 executable starts on one Windows machine; its SHA256 matches the release asset. Screenshots confirm Pro usage retrieval, the weekly value matching Codex, Chinese and English detail layouts, and widget placement beside the notification area. Account screenshots were not uploaded.
+
+手动刷新、五分钟自动刷新、重启后偏好保存、完整退出、其他 DPI/屏幕环境及真实 Plus 账号仍待验证。EXE 仍未签名；历史构建和部分 UI 检查曾被 Windows 应用控制阻止，本次成功启动不代表这些检查已恢复或所有电脑均能运行。
+
+Manual and five-minute automatic refresh, preferences after restart, complete shutdown, other DPI/display configurations, and a real Plus account remain unverified. The EXE is still unsigned. Earlier builds and some UI checks were blocked by Windows application control; this successful launch does not validate those checks or guarantee compatibility on every machine.
