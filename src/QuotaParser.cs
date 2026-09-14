@@ -54,6 +54,12 @@ namespace CodexQuotaLite
                         continue;
                     }
 
+                    if (IsSpark(bucketId) || IsSpark(GetString(bucketObject, "limitId")) ||
+                        IsSpark(GetString(bucketObject, "limitName")))
+                    {
+                        continue;
+                    }
+
                     ParsedBucket bucket = new ParsedBucket();
                     bucket.Id = bucketId.Trim();
                     bucket.Name = CleanText(GetString(bucketObject, "limitName"));
@@ -77,7 +83,8 @@ namespace CodexQuotaLite
             else
             {
                 IDictionary<string, object> legacy = AsObject(GetValue(limitsResult, "rateLimits"));
-                if (legacy != null)
+                if (legacy != null && !IsSpark(GetString(legacy, "limitId")) &&
+                    !IsSpark(GetString(legacy, "limitName")))
                 {
                     AddWindow(snapshot.Windows, legacy, "legacy", null, "primary", true);
                     AddWindow(snapshot.Windows, legacy, "legacy", null, "secondary", true);
@@ -86,6 +93,13 @@ namespace CodexQuotaLite
             }
 
             return snapshot;
+        }
+
+        private static bool IsSpark(string value)
+        {
+            return value != null &&
+                (value.IndexOf("spark", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 string.Equals(value.Trim(), "codex_bengalfox", StringComparison.OrdinalIgnoreCase));
         }
 
         private static IDictionary<string, object> ParseResultEnvelope(string json, bool accountEnvelope)

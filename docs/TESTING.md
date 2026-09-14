@@ -1,5 +1,11 @@
 # 测试 / Testing
 
+## 1.0.3
+
+新增检查覆盖 Spark 过滤、公共重置记录与预告区分、未知类型、安全来源链接、中英文缓存文案、损坏缓存及取消。用户已认可本地公告布局；GUI、真实Plus、其他DPI和新增HTTP异常分支尚未全面独立验证。
+
+New checks cover Spark filtering, executed versus scheduled reset records, unknown types, safe source links, bilingual cache labels, corrupt caches and cancellation. The user accepted the local announcement layout. GUI, live Plus accounts, other DPI settings and new HTTP failure paths have not been comprehensively verified independently.
+
 测试使用合成数据和模拟子进程，无需登录 Codex。
 
 Tests use synthetic data and a fake server; no Codex sign-in is required.

@@ -11,6 +11,7 @@ namespace CodexQuotaLite
     {
         private readonly IQuotaSource source;
         private readonly SettingsStore store;
+        private readonly ResetFeed resetFeed;
         private readonly Action<Rectangle, Rectangle, Rectangle> placementObserver;
         private readonly AppSettings settings;
         private readonly WidgetForm widget;
@@ -53,6 +54,8 @@ namespace CodexQuotaLite
             UiText.Language = settings.Language;
             widget = new WidgetForm();
             details = new DetailsForm(settings);
+            resetFeed = new ResetFeed(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexUsage", "reset-announcement.json"));
+            details.SetResetFeed(resetFeed);
             MainForm = widget;
             widget.ApplyScale(settings.ScalePercent);
             widget.TopMost = true;
@@ -208,6 +211,7 @@ namespace CodexQuotaLite
         private async Task RefreshAsync()
         {
             if (busy || stopping) return;
+            RefreshResetAnnouncement();
             busy = true;
             Render();
             try
@@ -225,6 +229,12 @@ namespace CodexQuotaLite
             }
             catch { if (!stopping) error = "暂时无法读取额度，请检查 Codex 登录状态及网络后重试。"; }
             finally { busy = false; if (!stopping) Render(); }
+        }
+
+        private async void RefreshResetAnnouncement()
+        {
+            await resetFeed.RefreshAsync(cancellation.Token);
+            if (!stopping) details.SetResetFeed(resetFeed);
         }
 
         private async Task ClockTickAsync()

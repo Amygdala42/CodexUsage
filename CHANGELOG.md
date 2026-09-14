@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3 — 2026-09-15
+
+- 移除全部 Spark 额度，旧选择自动回到可用额度。
+  Remove Spark quotas and fall back to an available quota window.
+- 增加公共重置公告的时间、类型和独立来源链接，支持中英文及本地缓存。
+  Add public reset announcements with time, type, a separate source link, bilingual text and caching.
+- 移除详情页白色悬浮提示，放大公告文字。
+  Remove detail tooltips and enlarge the announcement text.
+
 ## 1.0.2 — 2026-09-09
 
 - 详情标题右侧新增版本号和 GitHub 主页链接。

@@ -4,7 +4,7 @@
 
 A lightweight Windows widget for Codex quota and reset time, next to the notification area.
 
-**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.2/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
+**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.3/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
 
 For Windows x64.
 
@@ -13,13 +13,14 @@ For Windows x64.
 ## Features
 
 - The cyan disk and percentage show remaining quota; the blue disk and countdown show time left in the same window.
-- Shows all returned quota windows, with the same display rules for Plus and Pro.
+- Shows returned quota windows with the same rules for Plus and Pro; Spark quotas are excluded.
 - Refreshes automatically every five minutes, with manual refresh available.
+- Shows the latest public reset announcement and its type, with a separate Source link. Announcements do not confirm an individual account reset.
 - Saves your Chinese / English preference; fixed 100% app sizing follows Windows system DPI.
 
 ## Examples
 
-Illustrations of the v1.0.2 layout with example data; available quota windows depend on the account's actual response.
+Illustrations of the v1.0.3 layout with example data; available quota windows depend on the account's actual response.
 
 ### Plus
 

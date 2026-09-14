@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -12,10 +12,12 @@ namespace CodexQuotaLite
   private readonly Panel cards = new Panel();
   private readonly Label status = new Label(), updated = new Label();
   private readonly LinkLabel github = new LinkLabel();
+  private readonly Label resetNotice = new Label();
+  private readonly LinkLabel resetSource = new LinkLabel();
+  private ResetFeed resetFeed;
   private readonly Label version = new Label();
   private readonly Button refresh = new Button(), close = new Button(), languageChoice = new Button();
   private readonly UiDarkChoice windowChoice = new UiDarkChoice();
-  private readonly ToolTip tip = new ToolTip();
   private readonly List<QuotaWindow> windows = new List<QuotaWindow>();
   private bool binding, quitting, lastStale, lastBusy;
   private WidgetForm anchor;
@@ -26,7 +28,7 @@ namespace CodexQuotaLite
   public string SelectedLanguage { get { return UiText.Language; } }
   public string SelectedWindowId { get { return windowChoice.SelectedIndex >= 0 && windowChoice.SelectedIndex < windows.Count ? windows[windowChoice.SelectedIndex].Id : null; } }
   private float CardsHeight { get { return Math.Max(70, windows.Count * 74 + Math.Max(0, windows.Count - 1) * 8); } }
-  private float ChoiceY { get { return 84 + CardsHeight + 14; } }
+  private float ChoiceY { get { return 84 + CardsHeight + 48; } }
   private float FooterY { get { return ChoiceY + 46; } }
   private float LogicalHeight { get { return FooterY + 44; } }
   public DetailsForm(AppSettings settings)
@@ -35,6 +37,17 @@ namespace CodexQuotaLite
    FormBorderStyle=FormBorderStyle.None;StartPosition=FormStartPosition.Manual;ShowInTaskbar=false;
    AutoScaleMode=AutoScaleMode.None;BackColor=Theme.Background;DoubleBuffered=true;KeyPreview=true;
    cards.AutoScroll=false;cards.BackColor=Theme.Background;
+   resetNotice.ForeColor=Theme.Muted;
+   resetSource.LinkColor=Theme.Blue;resetSource.ActiveLinkColor=Theme.Aqua;resetSource.VisitedLinkColor=Theme.Blue;
+   resetSource.UseCompatibleTextRendering=false;resetSource.TextAlign=ContentAlignment.MiddleRight;
+   resetNotice.UseCompatibleTextRendering=false;resetNotice.TextAlign=ContentAlignment.MiddleLeft;
+   resetSource.LinkBehavior=LinkBehavior.HoverUnderline;
+   resetSource.LinkClicked+=delegate{
+    string url=resetFeed!=null&&resetFeed.Latest!=null?resetFeed.Latest.Url:"https://codex-resets.com/";
+    try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url){UseShellExecute=true});}
+    catch(System.ComponentModel.Win32Exception){resetNotice.Text=UiText.T("无法打开浏览器","Cannot open browser");}
+    catch(InvalidOperationException){resetNotice.Text=UiText.T("无法打开浏览器","Cannot open browser");}
+   };
    github.Text=UiText.T("GITHUB主页","GITHUB");github.LinkColor=Theme.Blue;github.ActiveLinkColor=Theme.Aqua;
    github.VisitedLinkColor=Theme.Blue;github.LinkBehavior=LinkBehavior.HoverUnderline;
    github.TextAlign=ContentAlignment.MiddleCenter;github.Cursor=Cursors.Hand;
@@ -54,10 +67,10 @@ namespace CodexQuotaLite
     SetState(lastSnapshot,SelectedWindowId??lastSelectedId,lastStale,lastBusy,lastMessage,lastSettingsMessage);
     if(SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);
    };
-   status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=true;
+   status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=false;
    status.TextAlign=ContentAlignment.MiddleLeft;updated.TextAlign=ContentAlignment.MiddleLeft;
    windowChoice.BackColor=Theme.Card;windowChoice.ForeColor=Theme.Text;
-   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice,github,version});
+   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice,github,version,resetNotice,resetSource});
    windowChoice.SelectedIndexChanged+=delegate{if(!binding&&SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);};
    ApplyScale(100);SetState(null,null,false,false,null,null);
   }
@@ -83,20 +96,23 @@ namespace CodexQuotaLite
   {
    Box(close,309,17,31,29);Box(cards,20,84,320,CardsHeight);
    Box(version,176,18,43,28);Box(github,222,18,82,28);
+   Box(resetNotice,20,84+CardsHeight+10,262,28);
+   Box(resetSource,290,84+CardsHeight+10,50,28);
    Box(languageChoice,20,ChoiceY,76,28);Box(windowChoice,108,ChoiceY,232,28);
    Box(status,20,FooterY,124,28);Box(updated,148,FooterY,112,28);Box(refresh,268,FooterY,72,28);
    for(int i=0;i<cards.Controls.Count;i++){UiQuotaCard card=(UiQuotaCard)cards.Controls[i];card.ScaleFactor=scale;card.Bounds=Rectangle.Round(new RectangleF(0,i*82*scale,320*scale,74*scale));}
   }
   public void SetState(QuotaSnapshot snapshot,string selectedId,bool stale,bool busy,string message,string settingsMessage)
   {
+   UpdateResetNotice();
    lastSnapshot=snapshot;lastSelectedId=selectedId;lastStale=stale;lastBusy=busy;lastMessage=message;lastSettingsMessage=settingsMessage;
    plan=snapshot==null||String.IsNullOrWhiteSpace(snapshot.PlanLabel)?UiText.T("套餐待获取","Plan unavailable"):UiText.Plan(snapshot.PlanLabel);
    Text=UiText.T("CodexUsage · 详情","CodexUsage");AccessibleName=UiText.T("CodexUsage详情和显示窗口选择","CodexUsage details and widget selection");
-   github.Text=UiText.T("GITHUB主页","GITHUB");github.AccessibleName=UiText.T("打开 GitHub 项目主页","Open the GitHub project page");tip.SetToolTip(github,github.AccessibleName);
+   github.Text=UiText.T("GITHUB主页","GITHUB");github.AccessibleName=UiText.T("打开 GitHub 项目主页","Open the GitHub project page");
    version.AccessibleName=UiText.T("版本 ","Version ")+version.Text;
    cards.AccessibleName=UiText.T("全部额度窗口","All usage windows");close.AccessibleName=UiText.T("关闭详情","Close details");
    languageChoice.Text=UiText.T("English","中文");languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
-   windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");tip.SetToolTip(windowChoice,windowChoice.AccessibleName);
+   windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");
    status.AccessibleName=UiText.T("刷新状态","Refresh status");updated.AccessibleName=UiText.T("上次更新时间","Last successful update");refresh.AccessibleName=UiText.T("立即刷新套餐和额度","Refresh plan and usage");
    binding=true;
    string oldIds=String.Join("|",windows.ConvertAll(delegate(QuotaWindow w){return w.Id;}).ToArray());
@@ -106,19 +122,28 @@ namespace CodexQuotaLite
    if(oldIds!=newIds||cards.Controls.Count!=windows.Count){while(cards.Controls.Count>0){Control child=cards.Controls[0];cards.Controls.Remove(child);child.Dispose();}windowChoice.Items.Clear();foreach(QuotaWindow window in windows){cards.Controls.Add(new UiQuotaCard());windowChoice.Items.Add(UiText.WindowLabel(window.Label));}}
    for(int i=0;i<windows.Count;i++){string label=UiText.WindowLabel(windows[i].Label);if(!String.Equals(Convert.ToString(windowChoice.Items[i]),label,StringComparison.Ordinal))windowChoice.Items[i]=label;}
    windowChoice.SelectedIndex=windows.FindIndex(delegate(QuotaWindow w){return w.Id==selectedId;});windowChoice.Enabled=windows.Count>0;
-   for(int i=0;i<windows.Count;i++){((UiQuotaCard)cards.Controls[i]).SetState(windows[i],stale,windows[i].Id==selectedId);tip.SetToolTip(cards.Controls[i],UiText.WindowLabel(windows[i].Label)+"\n"+Theme.ResetText(windows[i],DateTimeOffset.UtcNow)+(windows[i].ResetsAtUtc.HasValue?"\n"+windows[i].ResetsAtUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz"):""));} if(windowChoice.SelectedIndex>=0)tip.SetToolTip(windowChoice,windowChoice.AccessibleName+"\n"+UiText.WindowLabel(windows[windowChoice.SelectedIndex].Label));
+   for(int i=0;i<windows.Count;i++){((UiQuotaCard)cards.Controls[i]).SetState(windows[i],stale,windows[i].Id==selectedId);}
    binding=false;refresh.Enabled=!busy;refresh.Text=busy?UiText.T("刷新中","Loading"):UiText.T("立即刷新","Refresh");
    status.Text=UiText.T("额度每5分钟自动刷新","Every 5 min");
    updated.Text=snapshot==null?UiText.T("尚未更新","Not updated"):UiText.T("更新于 ","Updated ")+snapshot.FetchedAtUtc.ToLocalTime().ToString("HH:mm:ss");
-   tip.SetToolTip(updated,snapshot==null?updated.Text:UiText.T("完整更新时间：","Last updated: ")+snapshot.FetchedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz"));
    string text=busy?UiText.T("正在读取 Codex 账号套餐与额度…","Reading your Codex plan and usage…"):!String.IsNullOrEmpty(message)?UiText.Error(message):snapshot==null?UiText.T("等待获取额度。请先在 Codex 中登录。","Waiting for usage. Sign in to Codex first."):stale?UiText.T("上次结果已过期，请刷新后查看。","The previous result is out of date. Please refresh."):String.Empty;
    if(!String.IsNullOrEmpty(settingsMessage))text=UiText.Error(settingsMessage)+" "+text;
    bool problem=!String.IsNullOrEmpty(message)||!String.IsNullOrEmpty(settingsMessage)||stale;
-   status.Text=busy?UiText.T("正在刷新…","Refreshing…"):problem?UiText.T("状态提示（悬停查看）","Status · hover for details"):snapshot==null?UiText.T("等待获取额度","Waiting for usage"):UiText.T("额度每5分钟自动刷新","Every 5 min");
-   status.ForeColor=problem?Theme.Warning:Theme.Muted;status.AccessibleDescription=text;tip.SetToolTip(status,String.IsNullOrEmpty(text)?status.Text:text);
+   status.Text=busy?UiText.T("正在刷新…","Refreshing…"):problem?UiText.T("刷新异常","Refresh issue"):snapshot==null?UiText.T("等待获取额度","Waiting for usage"):UiText.T("额度每5分钟自动刷新","Every 5 min");
+   status.ForeColor=problem?Theme.Warning:Theme.Muted;status.AccessibleDescription=text;
    cards.AccessibleDescription=UiText.T("额度窗口数量：","Usage windows: ")+windows.Count;
    if(Visible&&anchor!=null&&!anchor.IsDisposed)RepositionAnchored();
    else{FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);Bounds=Theme.Clamp(Bounds,Screen.FromRectangle(Bounds).WorkingArea);}Invalidate();
+  }
+  internal void SetResetFeed(ResetFeed feed){resetFeed=feed;UpdateResetNotice();}
+  private void UpdateResetNotice()
+  {
+   resetNotice.Text=resetFeed!=null&&resetFeed.Latest!=null?resetFeed.Latest.Caption(UiText.English,resetFeed.Cached):
+    resetFeed!=null&&resetFeed.Failed?UiText.T("重置公告暂不可用","Reset news unavailable"):
+    UiText.T("暂无重置公告","No reset news");
+   resetSource.Text=UiText.T("来源","Source");
+   resetSource.AccessibleName=UiText.T("查看重置公告来源","View reset announcement source");
+   resetNotice.AccessibleDescription=UiText.T("来源 codex-resets.com，公共重置公告，不代表个人账号到账时间。","Source: codex-resets.com. Public announcement, not confirmation of an account reset.");
   }
   public void ShowAnchored(WidgetForm widget){anchor=widget;RepositionAnchored();Show();Activate();}
   private void RepositionAnchored(){Rectangle area=Screen.FromControl(anchor).WorkingArea;FitToWorkingArea(area);int gap=(int)(10*scale),x=anchor.Right-Width,y=anchor.Top-Height-gap;if(y<area.Top)y=anchor.Bottom+gap;Bounds=Theme.Clamp(new Rectangle(x,y,Width,Height),area);}
@@ -136,7 +161,6 @@ namespace CodexQuotaLite
   protected override void OnVisibleChanged(EventArgs e){if(!Visible&&windowChoice!=null)windowChoice.CloseDropDown();base.OnVisibleChanged(e);}
   protected override void OnFormClosing(FormClosingEventArgs e){if(!quitting&&e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}base.OnFormClosing(e);}
   protected override void OnKeyDown(KeyEventArgs e){base.OnKeyDown(e);if(e.KeyCode==Keys.Escape){Hide();e.Handled=true;}}
-  protected override void Dispose(bool disposing){if(disposing)tip.Dispose();base.Dispose(disposing);}
  }
  internal sealed class UiQuotaCard : Control
  {

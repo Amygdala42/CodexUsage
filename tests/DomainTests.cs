@@ -12,10 +12,12 @@ internal static class DomainTests
 
     public static int Main()
     {
+        Run("重置公告不混入预告且安全处理中英文本", ResetAnnouncementsAreSafe);
         Run("多桶优先主额度且不混入旧字段", MultiBucketUsesCodexFirstAndIgnoresLegacy);
         Run("Plus 显示实际普通双窗口且不补造 Spark", PlusUsesReturnedStandardWindowsWithoutSpark);
         Run("Plus 缺少窗口或字段时不按套餐补造数据", PlusMissingWindowsRemainMissing);
-        Run("Pro 的 Spark 来自响应且套餐名不决定窗口内容", PlanNameDoesNotInferOrFilterReturnedWindows);
+        Run("非 Spark 多桶不由套餐名称决定", PlanNameDoesNotInferOrFilterReturnedWindows);
+        Run("所有套餐过滤 Spark 且旧协议不回流", SparkIsExcluded);
         Run("多桶中只有 codex ID 能成为主桶", OnlyCodexBucketCanBePrimary);
         Run("主次窗口对调后仍按时长排序并保留稳定 ID", SwappedSlotsSortByDurationAndKeepDistinctIds);
         Run("数字缺失、零值、越界和非法日期保持正确语义", NumericNullZeroClampingAndInvalidDates);
@@ -47,6 +49,32 @@ internal static class DomainTests
 
         Console.WriteLine("RESULT: {0} passed, {1} failed", testsRun - failures, failures);
         return failures == 0 ? 0 : 1;
+    }
+
+    private static void ResetAnnouncementsAreSafe()
+    {
+        Equal(null, ResetAnnouncement.Parse("{\"data\":{\"latest_reset\":null,\"scheduled_reset\":{\"reset_type\":\"regular\"}}}"), "Scheduled event is not completed");
+        foreach(string type in new[]{"regular","banked","future"})
+        {
+            string json="{\"data\":{\"latest_reset\":{\"reset_type\":\""+type+"\",\"announced_at\":\"2026-09-12T08:09:17Z\",\"source\":{\"url\":\"file:///bad.exe\"}}}}";
+            ResetAnnouncement item=ResetAnnouncement.Parse(json);
+            Equal("https://codex-resets.com/",item.Url,"Unsafe source rejected");
+            Equal(TimeSpan.Zero,item.Time.Offset,"UTC time retained");
+            True(item.Caption(true,true).Contains("cached"),"English cached marker");
+            True(item.Caption(false,true).Contains("缓存"),"Chinese cached marker");
+            if(type=="banked")True(item.Caption(true,false).Contains("Banked"),"Banked distinct from immediate");
+            if(type=="future")Equal("unknown",item.Type,"Do not invent a new type");
+        }
+        string path=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N")+".json");
+        try{
+            File.WriteAllText(path,"broken");
+            Equal(null,new ResetFeed(path).Latest,"Corrupt cache is ignored");
+            File.WriteAllText(path,"{\"data\":{\"latest_reset\":{\"reset_type\":\"regular\",\"announced_at\":\"2026-09-12T08:09:17Z\"}}}");
+            ResetFeed feed=new ResetFeed(path);True(feed.Cached,"Restored data is marked cached");
+            var cancel=new System.Threading.CancellationTokenSource();cancel.Cancel();
+            feed.RefreshAsync(cancel.Token).GetAwaiter().GetResult();
+            True(feed.Cached,"Cancelled refresh preserves cache");cancel.Dispose();
+        }finally{if(File.Exists(path))File.Delete(path);}
     }
 
     private static void DefaultDataRootIsUnderLocalAppData()
@@ -308,10 +336,40 @@ internal static class DomainTests
         Equal(0, empty.Windows.Count, "空额度响应不能生成默认 5 小时、每周或 Spark 窗口");
     }
 
+    private static void SparkIsExcluded()
+    {
+        string[] markers = {
+            "\"codex_bengalfox\":{}",
+            "\"CoDeX_BeNgAlFoX\":{}",
+            "\"gpt-5.3-codex-spark\":{}",
+            "\"other\":{\"limitId\":\"codex_bengalfox\"}",
+            "\"other\":{\"limitName\":\"GPT-5.3-Codex-Spark\"}"
+        };
+        foreach (string plan in new[] { "plus", "pro" })
+        foreach (string marker in markers)
+        {
+            string bucket = marker.Substring(0, marker.Length - 1);
+            if (!bucket.EndsWith("{")) bucket += ",";
+            bucket += "\"primary\":{\"usedPercent\":0},\"secondary\":{\"usedPercent\":0}}";
+            string data = "{\"result\":{\"rateLimitsByLimitId\":{" + bucket + ",\"codex\":{\"secondary\":{\"usedPercent\":25}}},\"rateLimits\":{\"primary\":{\"usedPercent\":99}}}}";
+            QuotaSnapshot snapshot = QuotaParser.Parse(Account("chatgpt", plan), data, DateTimeOffset.UtcNow);
+            Equal(1, snapshot.Windows.Count, "Only ordinary quota remains");
+            Equal("codex:secondary", snapshot.Windows[0].Id, "Ordinary quota is the fallback");
+            Equal(75.0, snapshot.Windows[0].RemainingPercent.Value, "Ordinary value stays intact");
+            data = "{\"result\":{\"rateLimitsByLimitId\":{" + bucket + "},\"rateLimits\":{\"primary\":{\"usedPercent\":99}}}}";
+            Equal(0, QuotaParser.Parse(Account("chatgpt", plan), data, DateTimeOffset.UtcNow).Windows.Count, "No legacy fallback resurrects Spark");
+        }
+        foreach (string field in new[] { "\"limitId\":\"codex_bengalfox\"", "\"limitName\":\"GPT-5.3-Codex-Spark\"" })
+        {
+            string data = "{\"result\":{\"rateLimits\":{" + field + ",\"primary\":{\"usedPercent\":0}}}}";
+            Equal(0, QuotaParser.Parse(Account("chatgpt", "pro"), data, DateTimeOffset.UtcNow).Windows.Count, "Legacy Spark is excluded");
+        }
+    }
+
     private static void PlanNameDoesNotInferOrFilterReturnedWindows()
     {
         string limits = @"{""result"":{""rateLimitsByLimitId"":{
-          ""codex_bengalfox"":{""limitName"":""回归示例 Spark"",
+          ""model_other"":{""limitName"":""回归示例 Other"",
             ""primary"":{""usedPercent"":8,""windowDurationMins"":300,""resetsAt"":1800000100}},
           ""codex"":{
             ""primary"":{""usedPercent"":24,""windowDurationMins"":300,""resetsAt"":1800000000},
@@ -321,15 +379,15 @@ internal static class DomainTests
         QuotaSnapshot pro = QuotaParser.Parse(Account("chatgpt", "pro"), limits, now);
 
         Equal("Pro", pro.PlanLabel, "Pro 套餐标签");
-        Equal(3, pro.Windows.Count, "响应实际包含两个主窗口和一个 Spark 窗口");
-        Equal("codex:primary", pro.Windows[0].Id, "Spark 在响应中靠前也不能替代主额度");
-        Equal("codex:secondary", pro.Windows[1].Id, "主桶窗口排在 Spark 前");
-        Equal("codex_bengalfox:primary", pro.Windows[2].Id, "保留实际 Spark 桶 ID");
-        Equal("回归示例 Spark · 5小时", pro.Windows[2].Label, "名称来自响应而非写死模型名称");
-        Equal(92.0, pro.Windows[2].RemainingPercent.Value, "Spark 的百分比来自其自己的窗口");
+        Equal(3, pro.Windows.Count, "响应实际包含两个主窗口和一个 Other 窗口");
+        Equal("codex:primary", pro.Windows[0].Id, "Other 在响应中靠前也不能替代主额度");
+        Equal("codex:secondary", pro.Windows[1].Id, "主桶窗口排在 Other 前");
+        Equal("model_other:primary", pro.Windows[2].Id, "保留实际 Other 桶 ID");
+        Equal("回归示例 Other · 5小时", pro.Windows[2].Label, "名称来自响应而非写死模型名称");
+        Equal(92.0, pro.Windows[2].RemainingPercent.Value, "Other 的百分比来自其自己的窗口");
 
-        // This synthetic Plus+Spark pairing tests protocol independence only;
-        // it does not assert that a real Plus subscription is entitled to Spark.
+        // This synthetic Plus+Other pairing tests protocol independence only;
+        // it does not assert that a real Plus subscription is entitled to Other.
         QuotaSnapshot plus = QuotaParser.Parse(Account("chatgpt", "plus"), limits, now);
         Equal("Plus", plus.PlanLabel, "替换账号套餐时更新显示标签");
         Equal(pro.Windows.Count, plus.Windows.Count, "不能依据套餐名过滤响应中的窗口");
@@ -343,7 +401,7 @@ internal static class DomainTests
         }
 
         QuotaSnapshot emptyPro = QuotaParser.Parse(Account("chatgpt", "pro"), EmptyLimits(), now);
-        Equal(0, emptyPro.Windows.Count, "Pro 本身不能触发创建 Spark 或其它默认窗口");
+        Equal(0, emptyPro.Windows.Count, "Pro 本身不能触发创建 Other 或其它默认窗口");
     }
 
     private static void OnlyCodexBucketCanBePrimary()
@@ -365,8 +423,8 @@ internal static class DomainTests
         string limits = @"{
           ""jsonrpc"":""2.0"",""id"":2,""result"":{
             ""rateLimitsByLimitId"":{
-              ""codex_bengalfox"":{
-                ""limitId"":""codex_bengalfox"",""limitName"":""GPT-5.3-Codex-Spark"",
+              ""model_other"":{
+                ""limitId"":""model_other"",""limitName"":""Other model"",
                 ""primary"":{""usedPercent"":11,""windowDurationMins"":300,""resetsAt"":1800000000},
                 ""secondary"":{""usedPercent"":22,""windowDurationMins"":10080,""resetsAt"":1800600000}
               },
@@ -389,8 +447,8 @@ internal static class DomainTests
         Equal("codex:primary", snapshot.Windows[0].Id, "主额度桶必须优先");
         Equal("每周额度", snapshot.Windows[0].Label, "主桶标签");
         Equal(33.0, snapshot.Windows[0].UsedPercent.Value, "不得混入旧单桶");
-        Equal("codex_bengalfox:primary", snapshot.Windows[1].Id, "其它桶窗口顺序");
-        Equal("GPT-5.3-Codex-Spark · 5小时", snapshot.Windows[1].Label, "其它桶标签需可区分");
+        Equal("model_other:primary", snapshot.Windows[1].Id, "其它桶窗口顺序");
+        Equal("Other model · 5小时", snapshot.Windows[1].Label, "其它桶标签需可区分");
         Equal(TimeSpan.Zero, snapshot.FetchedAtUtc.Offset, "抓取时间必须为 UTC");
     }
 

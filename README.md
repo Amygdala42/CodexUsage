@@ -4,7 +4,7 @@
 
 轻量 Windows Codex 额度小窗，在任务栏通知区旁查看剩余额度和重置倒计时。
 
-**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.2/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
+**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.3/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
 
 适用于 Windows x64。
 
@@ -13,13 +13,14 @@
 ## 功能
 
 - 上行青色圆盘和百分比表示剩余额度，下行蓝色圆盘和倒计时表示同一周期的剩余时间。
-- 按实际返回展开全部额度卡片；Plus、Pro 使用相同规则。
+- 按实际返回显示额度卡片；Plus、Pro 使用相同规则，已移除 Spark 额度。
 - 每 5 分钟自动刷新，也可手动刷新。
+- 显示最近公共重置公告的时间和类型，点击来源查看原文；公告不代表个人账号到账。
 - 中英文切换并保存偏好；应用尺寸固定 100%，跟随 Windows 系统 DPI。
 
 ## 界面示例
 
-以下为 v1.0.2 布局示意图，使用示例数据；额度项目以账号实际返回为准。
+以下为 v1.0.3 布局示意图，使用示例数据；额度项目以账号实际返回为准。
 
 ### Plus
 

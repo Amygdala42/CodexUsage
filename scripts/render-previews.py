@@ -67,20 +67,18 @@ class Canvas:
 
 
 def render(plan, english, destination, fonts, version):
-    # Consistent example clock: 2026-09-09 10:00 local time.
+    # Consistent example clock: 2026-09-15 10:00 local time.
     if plan == "Plus":
         windows = [
-            ("5h" if english else "5 小时额度", 79, "Resets in 3h 42m" if english else "3小时42分后重置", "09-09 13:42"),
-            ("Weekly" if english else "每周额度", 39, "Resets in 4d 12h" if english else "4天12小时后重置", "09-13 22:00"),
+            ("5h" if english else "5 小时额度", 79, "Resets in 3h 42m" if english else "3小时42分后重置", "09-15 13:42"),
+            ("Weekly" if english else "每周额度", 39, "Resets in 4d 12h" if english else "4天12小时后重置", "09-19 22:00"),
         ]
     else:
         windows = [
-            ("Weekly" if english else "每周额度", 95, "Resets in 4d 12h" if english else "4天12小时后重置", "09-13 22:00"),
-            ("GPT-5.3-Codex-Spark · 5h" if english else "GPT-5.3-Codex-Spark · 5小时", 100, "Resets in 4h 12m" if english else "4小时12分后重置", "09-09 14:12"),
-            ("GPT-5.3-Codex-Spark · Weekly" if english else "GPT-5.3-Codex-Spark · 每周", 100, "Resets in 6d 18h" if english else "6天18小时后重置", "09-16 04:00"),
+            ("Weekly" if english else "每周额度", 95, "Resets in 4d 12h" if english else "4天12小时后重置", "09-19 22:00"),
         ]
     cards_height = len(windows) * 74 + (len(windows) - 1) * 8
-    choice_y = 84 + cards_height + 14
+    choice_y = 84 + cards_height + 48
     footer_y = choice_y + 46
     app_height = footer_y + 44
     top = 26
@@ -104,6 +102,8 @@ def render(plan, english, destination, fonts, version):
         canvas.round(32, y + 37, 296 * amount / 100, 5, 2.5, AQUA)
         canvas.text(countdown, 32, y + 49, 170, 17, 9.5, BLUE)
         canvas.text(reset, 204, y + 49, 124, 17, 9.5, MUTED, align="right")
+    canvas.text("Latest reset  09-12 16:09  Regular" if english else "最近重置公告  09-12 16:09  即时重置", 20, top + 84 + cards_height + 10, 262, 28, 11, MUTED)
+    canvas.text("Source" if english else "来源", 290, top + 84 + cards_height + 10, 50, 28, 11, BLUE, align="right")
     canvas.round(20, top + choice_y, 76, 28, 0, CARD, BORDER)
     canvas.text("中文" if english else "English", 20, top + choice_y, 76, 28, 11, align="center")
     canvas.round(108, top + choice_y, 232, 28, 6.4, CARD, BORDER)

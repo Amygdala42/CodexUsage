@@ -10,6 +10,14 @@ $icon = Join-Path $repositoryRoot 'assets/app.ico'
 $manifest = Join-Path $sourceRoot 'app.manifest'
 $license = Join-Path $repositoryRoot 'LICENSE'
 $notices = Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md'
+$programText = Get-Content -LiteralPath (Join-Path $sourceRoot 'Program.cs') -Raw
+$assemblyVersion = [regex]::Match($programText, 'AssemblyVersion\("([0-9.]+)"\)').Groups[1].Value
+$fileVersion = [regex]::Match($programText, 'AssemblyFileVersion\("([0-9.]+)"\)').Groups[1].Value
+[xml]$manifestXml = Get-Content -LiteralPath $manifest -Raw
+$identity = $manifestXml.SelectSingleNode("/*[local-name()='assembly']/*[local-name()='assemblyIdentity']")
+if (!$assemblyVersion -or $assemblyVersion -ne $fileVersion -or !$identity -or $identity.version -ne $assemblyVersion -or $identity.name -ne 'CodexUsage') {
+    throw 'Program, file and manifest versions must match, and the manifest name must be CodexUsage.'
+}
 if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
     throw 'The Windows x64 .NET Framework compiler was not found. See docs/BUILD.md.'
 }

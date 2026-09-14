@@ -8,12 +8,19 @@ CodexUsage 通过本机 Codex `app-server` 请求 `account/read`（`refreshToken
 
 CodexUsage reads account and quota information through the local Codex app-server. It does not start model conversations, request quota resets or purchases, or read and store login credentials itself. Responses are processed in memory. Codex handles service access, authentication state, and its own local files.
 
+## 公共重置公告 / Public reset announcements
+
+应用直接请求 `https://codex-resets.com/api/v1/status`，通常每15分钟检查一次，并遵守缓存及重试间隔。不会发送账号、额度或登录凭据；该网站会收到普通网络请求信息，例如IP地址和应用User-Agent。点击来源通过浏览器打开公告原文，通常为X帖子。公告不能确认个人账号是否已获得重置。
+
+The app requests the public Codex Resets API, normally every 15 minutes, respecting cache and retry intervals. No account, quota or credential data is sent. The site receives ordinary connection information such as your IP address and the app User-Agent. Source links open the original announcement, usually on X, in your browser. These announcements do not confirm a reset for your account.
+
 ## 本地文件 / Local files
 
 数据保存在当前 Windows 用户的 `%LOCALAPPDATA%\CodexUsage`：
 
 | 相对数据目录的路径 | 内容 |
 | --- | --- |
+| `reset-announcement.json` | 公共重置公告缓存 / Public announcement cache |
 | `settings.json` | 语言、所选额度窗口和显示设置 |
 | `tmp/CodexQuotaLite/` | 子进程工作目录及临时文件 |
 | `logs/application.log` | UTC 时间和异常类型 |
