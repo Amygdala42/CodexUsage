@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.4 — Unreleased
+
+- 固定 Codex 通信输入编码，避免宿主的 UTF-8 BOM 导致握手失败；加强协议错误测试，防止提前断线被误判为通过。
+  Make Codex input independent of the host's UTF-8 BOM and ensure protocol tests reach the intended error branch.
+- 正确处理公共公告 304 缓存响应、日期形式的重试间隔和取消；修复缓存头大小写/引号解析及坏响应提前延长缓存的问题，新增离线 HTTP 回归套件。
+  Handle announcement 304 responses, HTTP-date retry delays and cancellation; accept cache directive case/quotes and avoid extending freshness after invalid responses, with an offline HTTP regression suite.
+- 普通定时刷新保留正在操作的额度下拉框，仅在内容或布局改变、窗口移动或隐藏时关闭。
+  Keep the usage dropdown open on ordinary refresh; dismiss it when content or layout changes or the window moves or hides.
+
 ## 1.0.3 — 2026-09-15
 
 - 移除全部 Spark 额度，旧选择自动回到可用额度。

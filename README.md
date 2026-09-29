@@ -45,8 +45,11 @@
 
 ## 开发
 
+当前源码为 **1.0.4 修复版（尚未发布）**；上方下载链接仍指向已发布的 1.0.3，示意图也保留该版布局。修复涉及通信输入编码、公告缓存和重试，以及刷新时保留额度选择菜单。验证范围见 [测试说明](docs/TESTING.md)。
+
 ```powershell
 ./scripts/build.ps1
+./scripts/test.ps1 -Suite All
 ```
 
 [构建说明](docs/BUILD.md) · [测试说明](docs/TESTING.md) · [隐私说明](docs/PRIVACY.md)

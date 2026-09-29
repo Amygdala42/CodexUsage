@@ -53,6 +53,7 @@ namespace CodexQuotaLite
         private string etag;
         private bool running;
         private bool hasResponse;
+        private int cacheSeconds = 900;
         private DateTimeOffset nextRequest;
         internal ResetAnnouncement Latest { get; private set; }
         internal bool Cached { get; private set; }
@@ -71,58 +72,61 @@ namespace CodexQuotaLite
         {
             if (running || token.IsCancellationRequested || DateTimeOffset.UtcNow < nextRequest) return;
             running = true;
+            DateTimeOffset previousRequest = nextRequest;
             nextRequest = DateTimeOffset.UtcNow.AddMinutes(15);
             try
             {
                 string newEtag = etag;
+                int newCacheSeconds = cacheSeconds;
                 string json = await Task.Run(delegate {
                     var request = (HttpWebRequest)WebRequest.Create("https://codex-resets.com/api/v1/status");
                     request.Timeout = 10000; request.ReadWriteTimeout = 10000;
                     request.AllowAutoRedirect = false;
-                    request.UserAgent = "CodexUsage/1.0.3";
+                    request.UserAgent = "CodexUsage/" + typeof(ResetFeed).Assembly.GetName().Version.ToString(3);
                     if (etag != null) request.Headers[HttpRequestHeader.IfNoneMatch] = etag;
                     using (token.Register(request.Abort))
                     {
-                        try
-                        {
-                            using (var response = (HttpWebResponse)request.GetResponse())
-                            {
-                                if (response.StatusCode != HttpStatusCode.OK) throw new IOException("Unexpected status");
-                                if (response.ContentLength > 262144) throw new IOException("Response too large");
-                                newEtag = response.Headers["ETag"];
-                                var maxAge = System.Text.RegularExpressions.Regex.Match(response.Headers["Cache-Control"] ?? "", @"(?:^|,)\s*max-age=(\d+)");
-                                int seconds;
-                                if (maxAge.Success && Int32.TryParse(maxAge.Groups[1].Value, out seconds))
-                                    nextRequest = DateTimeOffset.UtcNow.AddSeconds(Math.Max(900, seconds));
-                                using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
-                                {
-                                    var text = new StringBuilder(); var buffer = new char[4096]; int count;
-                                    while ((count = reader.Read(buffer, 0, buffer.Length)) > 0)
-                                    { token.ThrowIfCancellationRequested(); text.Append(buffer, 0, count); if (text.Length > 262144) throw new IOException("Response too large"); }
-                                    return text.ToString();
-                                }
-                            }
-                        }
+                        HttpWebResponse response;
+                        try { response = (HttpWebResponse)request.GetResponse(); }
                         catch (WebException error)
                         {
-                            using (var response = error.Response as HttpWebResponse)
+                            response = error.Response as HttpWebResponse;
+                            if (response == null) throw;
+                            // Some HTTP stacks surface 304 as ProtocolError, while Framework
+                            // normally returns it. Both must take the same validation path.
+                            if (response.StatusCode != HttpStatusCode.NotModified)
                             {
-                                if (response != null && response.StatusCode == HttpStatusCode.NotModified && hasResponse) return null;
-                                if (response != null && (int)response.StatusCode == 429)
+                                using (response)
                                 {
-                                    int seconds;
-                                    if (Int32.TryParse(response.Headers["Retry-After"], out seconds) && seconds > 0)
-                                        nextRequest = DateTimeOffset.UtcNow.AddSeconds(Math.Max(900, seconds));
+                                    if ((int)response.StatusCode == 429 || response.StatusCode == HttpStatusCode.ServiceUnavailable)
+                                        nextRequest = RetryTime(response.Headers["Retry-After"]);
                                 }
+                                throw;
                             }
-                            throw;
+                        }
+                        using (response)
+                        {
+                            bool notModified = response.StatusCode == HttpStatusCode.NotModified;
+                            if ((notModified && !hasResponse) || (!notModified && response.StatusCode != HttpStatusCode.OK))
+                                throw new IOException("Unexpected status");
+                            newEtag = notModified ? response.Headers["ETag"] ?? etag : response.Headers["ETag"];
+                            newCacheSeconds = FreshnessSeconds(response.Headers["Cache-Control"], notModified ? cacheSeconds : 900);
+                            if (notModified) return null;
+                            if (response.ContentLength > 262144) throw new IOException("Response too large");
+                            using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                            {
+                                var text = new StringBuilder(); var buffer = new char[4096]; int count;
+                                while ((count = reader.Read(buffer, 0, buffer.Length)) > 0)
+                                { token.ThrowIfCancellationRequested(); text.Append(buffer, 0, count); if (text.Length > 262144) throw new IOException("Response too large"); }
+                                return text.ToString();
+                            }
                         }
                     }
                 }, token);
                 if (token.IsCancellationRequested) return;
                 if (json != null)
                 {
-                    Latest = ResetAnnouncement.Parse(json); etag = newEtag; hasResponse = true;
+                    Latest = ResetAnnouncement.Parse(json); hasResponse = true;
                     try
                     {
                         Directory.CreateDirectory(Path.GetDirectoryName(cachePath));
@@ -133,15 +137,47 @@ namespace CodexQuotaLite
                     catch (IOException) { }
                     catch (UnauthorizedAccessException) { }
                 }
+                // Commit response metadata only after a complete, valid response. A bad
+                // body must not postpone retries using an untrusted long freshness value.
+                etag = newEtag; cacheSeconds = newCacheSeconds;
+                nextRequest = DateTimeOffset.UtcNow.AddSeconds(cacheSeconds);
                 Cached = false; Failed = false;
             }
             catch (Exception error)
             {
                 if (!(error is WebException) && !(error is IOException) && !(error is ArgumentException) &&
                     !(error is InvalidOperationException) && !(error is FormatException) && !(error is OperationCanceledException)) throw;
+                if (token.IsCancellationRequested) return;
                 Cached = Latest != null; Failed = true;
             }
-            finally { running = false; }
+            finally
+            {
+                if (token.IsCancellationRequested) nextRequest = previousRequest;
+                running = false;
+            }
+        }
+        private static int FreshnessSeconds(string cacheControl, int previous)
+        {
+            if (cacheControl == null) return previous;
+            var maxAge = System.Text.RegularExpressions.Regex.Match(cacheControl,
+                @"(?:^|,)\s*max-age\s*=\s*""?(\d+)""?\s*(?:,|$)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            int seconds;
+            return maxAge.Success && Int32.TryParse(maxAge.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out seconds)
+                ? Math.Max(900, seconds) : 900;
+        }
+        private static DateTimeOffset RetryTime(string retryAfter)
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            DateTimeOffset minimum = now.AddMinutes(15);
+            int seconds;
+            if (Int32.TryParse(retryAfter, NumberStyles.None, CultureInfo.InvariantCulture, out seconds))
+                return now.AddSeconds(Math.Max(900, seconds));
+            DateTimeOffset date;
+            if (DateTimeOffset.TryParse(retryAfter, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date) && date > minimum)
+                return date;
+            return minimum;
         }
     }
 }

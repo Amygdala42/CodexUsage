@@ -14,6 +14,8 @@ namespace CodexQuotaLite
 {
     public sealed class CodexQuotaSource : IQuotaSource
     {
+        private static readonly object processStartEncodingSync = new object();
+        private static readonly Encoding protocolEncoding = new UTF8Encoding(false);
         private readonly string executableOverride;
         private readonly string supportDirectory;
         private readonly SemaphoreSlim gate = new SemaphoreSlim(1, 1);
@@ -80,7 +82,7 @@ namespace CodexQuotaLite
                     {
                         linked.Token.ThrowIfCancellationRequested();
                         if (disposed) throw new OperationCanceledException(linked.Token);
-                        process.Start();
+                        StartWithoutInputPreamble(process);
                         activeProcess = process;
                         stage = "job";
                         job = ProcessJob.TryAttach(process);
@@ -91,7 +93,7 @@ namespace CodexQuotaLite
                     Task cancellation = Task.Delay(Timeout.Infinite, linked.Token);
                     await SendAsync(process, json.Serialize(new {
                         id = 1, method = "initialize", @params = new {
-                            clientInfo = new { name = "codex_quota_lite", title = "Codex Quota Lite", version = "0.1.0" }
+                            clientInfo = new { name = "codex_quota_lite", title = "Codex Quota Lite", version = typeof(CodexQuotaSource).Assembly.GetName().Version.ToString(3) }
                         }
                     })).ConfigureAwait(false);
                     await ReadReplyAsync(process, 1, json, cancellation, linked.Token).ConfigureAwait(false);
@@ -150,8 +152,49 @@ namespace CodexQuotaLite
 
         private static async Task SendAsync(Process process, string message)
         {
-            await process.StandardInput.WriteLineAsync(message).ConfigureAwait(false);
-            await process.StandardInput.FlushAsync().ConfigureAwait(false);
+            // Never buffer text in Framework's writer: its encoding comes from
+            // Console.InputEncoding, which may be a legacy code page or UTF-16.
+            byte[] bytes = protocolEncoding.GetBytes(message + "\n");
+            Stream input = process.StandardInput.BaseStream;
+            await input.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
+            await input.FlushAsync().ConfigureAwait(false);
+        }
+
+        private static void StartWithoutInputPreamble(Process process)
+        {
+            // .NET Framework has no ProcessStartInfo.StandardInputEncoding.
+            // Process.Start immediately AutoFlushes its writer, including a BOM,
+            // before callers can replace it. Serialize our starts and suppress
+            // only that preamble, restoring the host's encoding and input reader.
+            lock (processStartEncodingSync)
+            {
+                Encoding original = Console.InputEncoding;
+                if (original.GetPreamble().Length == 0)
+                {
+                    // A WinExe normally has no console. Do not call the console
+                    // encoding setter here: SetConsoleCP would fail in that case.
+                    process.Start();
+                    return;
+                }
+                Encoding withoutPreamble;
+                switch (original.CodePage)
+                {
+                    case 65001: withoutPreamble = new UTF8Encoding(false); break;
+                    case 1200: withoutPreamble = new UnicodeEncoding(false, false); break;
+                    case 1201: withoutPreamble = new UnicodeEncoding(true, false); break;
+                    case 12000: withoutPreamble = new UTF32Encoding(false, false); break;
+                    case 12001: withoutPreamble = new UTF32Encoding(true, false); break;
+                    default: throw new InvalidOperationException("无法建立 Codex UTF-8 连接，请重新打开程序后重试。");
+                }
+                TextReader originalReader = Console.In;
+                Console.InputEncoding = withoutPreamble;
+                try { process.Start(); }
+                finally
+                {
+                    try { Console.InputEncoding = original; }
+                    finally { Console.SetIn(originalReader); }
+                }
+            }
         }
 
         private static StringDictionary GetChildEnvironment(ProcessStartInfo info)

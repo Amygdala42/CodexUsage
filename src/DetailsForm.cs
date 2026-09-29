@@ -79,9 +79,11 @@ namespace CodexQuotaLite
   public void ApplyScale(int ignoredLegacyPercent){using(Graphics g=CreateGraphics())preferredScale=g.DpiX/96f;FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);}
   private void FitToWorkingArea(Rectangle area)
   {
-   windowChoice.CloseDropDown();
-   scale=Math.Min(preferredScale,Math.Min(Math.Max(1,area.Width-12)/360f,Math.Max(1,area.Height-12)/LogicalHeight));
-   ClientSize=new Size(Math.Max(1,(int)Math.Floor(360*scale)),Math.Max(1,(int)Math.Floor(LogicalHeight*scale)));
+   float nextScale=Math.Min(preferredScale,Math.Min(Math.Max(1,area.Width-12)/360f,Math.Max(1,area.Height-12)/LogicalHeight));
+   Size nextSize=new Size(Math.Max(1,(int)Math.Floor(360*nextScale)),Math.Max(1,(int)Math.Floor(LogicalHeight*nextScale)));
+   // A clock/usage repaint must not dismiss a choice that the user is making.
+   if(scale!=nextScale||ClientSize!=nextSize)windowChoice.CloseDropDown();
+   scale=nextScale;ClientSize=nextSize;
    foreach(Control control in Controls){Font previous=control.Font;Font next=new Font("Microsoft YaHei UI",(control==github||control==version?12:control==status||control==updated?10:11)*scale,FontStyle.Regular,GraphicsUnit.Pixel);if(next.Equals(previous))next.Dispose();else{control.Font=next;if(previous!=Font&&previous!=SystemFonts.DefaultFont)previous.Dispose();}}
    windowChoice.ItemHeight=(int)(21*scale);LayoutControls();Invalidate();
   }
@@ -159,6 +161,7 @@ namespace CodexQuotaLite
   }
   public void Shutdown(){quitting=true;Close();}
   protected override void OnVisibleChanged(EventArgs e){if(!Visible&&windowChoice!=null)windowChoice.CloseDropDown();base.OnVisibleChanged(e);}
+  protected override void OnLocationChanged(EventArgs e){if(windowChoice!=null)windowChoice.CloseDropDown();base.OnLocationChanged(e);}
   protected override void OnFormClosing(FormClosingEventArgs e){if(!quitting&&e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}base.OnFormClosing(e);}
   protected override void OnKeyDown(KeyEventArgs e){base.OnKeyDown(e);if(e.KeyCode==Keys.Escape){Hide();e.Handled=true;}}
  }

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'All')][string]$Suite = 'Domain',
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'All')][string]$Suite = 'Domain',
     [switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -40,6 +40,13 @@ try {
         if (-not $BuildOnly) {
             & $bridge $fake (Join-Path $outputRoot 'fake-support')
             if ($LASTEXITCODE -ne 0) { throw ('Bridge checks failed with exit code ' + $LASTEXITCODE) }
+        }
+    }
+    if ($Suite -eq 'ResetFeed' -or $Suite -eq 'All') {
+        $resetFeed = Build-Check 'ResetFeedTests' @((Join-Path $testRoot 'ResetFeedTests.cs'), (Join-Path $sourceRoot 'ResetFeed.cs'))
+        if (-not $BuildOnly) {
+            & $resetFeed
+            if ($LASTEXITCODE -ne 0) { throw ('Reset feed checks failed with exit code ' + $LASTEXITCODE) }
         }
     }
     if ($BuildOnly) { Write-Output 'Test compilation completed. No tests were executed.' }

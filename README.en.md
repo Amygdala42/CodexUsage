@@ -45,8 +45,11 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
+The current source is **1.0.4 (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, and keeping the usage selector open during refresh. See [TESTING](docs/TESTING.md) for verification scope.
+
 ```powershell
 ./scripts/build.ps1
+./scripts/test.ps1 -Suite All
 ```
 
 [BUILD](docs/BUILD.md) · [TESTING](docs/TESTING.md) · [PRIVACY](docs/PRIVACY.md)
