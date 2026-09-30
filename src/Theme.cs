@@ -12,12 +12,12 @@ namespace CodexQuotaLite
             Color.FromArgb(16, 23, 36), Color.FromArgb(25, 35, 51), Color.FromArgb(48, 63, 82),
             Color.FromArgb(238, 245, 250), Color.FromArgb(150, 169, 188), Color.FromArgb(70, 224, 196),
             Color.FromArgb(106, 163, 255), Color.FromArgb(245, 193, 117),
-            Color.FromArgb(24, 31, 39), Color.FromArgb(91, 165, 245), Color.FromArgb(63, 137, 232), Color.FromArgb(66, 77, 86));
+            Color.FromArgb(24, 31, 39), Color.FromArgb(108, 207, 145), Color.FromArgb(168, 229, 188), Color.FromArgb(168, 229, 188), Color.FromArgb(66, 77, 86));
         private static readonly Palette Light = new Palette("light",
             Color.FromArgb(229, 229, 229), Color.FromArgb(239, 239, 239), Color.FromArgb(216, 224, 234),
             Color.FromArgb(31, 42, 55), Color.FromArgb(79, 96, 114), Color.FromArgb(0, 107, 97),
             Color.FromArgb(32, 86, 170), Color.FromArgb(139, 82, 0),
-            Color.FromArgb(232, 232, 232), Color.FromArgb(43, 103, 183), Color.FromArgb(32, 82, 153), Color.FromArgb(174, 185, 199));
+            Color.FromArgb(232, 232, 232), Color.FromArgb(108, 207, 145), Color.FromArgb(168, 229, 188), Color.FromArgb(36, 109, 64), Color.FromArgb(174, 185, 199));
         private static Palette current = Dark;
 
         internal static void Apply(string mode) { current = mode == "light" ? Light : Dark; }
@@ -34,19 +34,20 @@ namespace CodexQuotaLite
         internal static Color WidgetSurface { get { return current.WidgetSurface; } }
         internal static Color WidgetQuotaColor { get { return current.WidgetQuotaColor; } }
         internal static Color WidgetTimeColor { get { return current.WidgetTimeColor; } }
+        internal static Color WidgetTimeTextColor { get { return current.WidgetTimeTextColor; } }
         internal static Color WidgetBorder { get { return current.WidgetBorder; } }
 
         private sealed class Palette
         {
             internal readonly string Mode;
             internal readonly Color Background, Card, Border, Text, Muted, Aqua, Blue, Warning;
-            internal readonly Color WidgetSurface, WidgetQuotaColor, WidgetTimeColor, WidgetBorder;
+            internal readonly Color WidgetSurface, WidgetQuotaColor, WidgetTimeColor, WidgetTimeTextColor, WidgetBorder;
             internal Palette(string mode, Color background, Color card, Color border, Color text, Color muted,
-                Color aqua, Color blue, Color warning, Color widgetSurface, Color widgetQuotaColor, Color widgetTimeColor, Color widgetBorder)
+                Color aqua, Color blue, Color warning, Color widgetSurface, Color widgetQuotaColor, Color widgetTimeColor, Color widgetTimeTextColor, Color widgetBorder)
             {
                 Mode = mode; Background = background; Card = card; Border = border; Text = text; Muted = muted;
                 Aqua = aqua; Blue = blue; Warning = warning; WidgetSurface = widgetSurface;
-                WidgetQuotaColor = widgetQuotaColor; WidgetTimeColor = widgetTimeColor; WidgetBorder = widgetBorder;
+                WidgetQuotaColor = widgetQuotaColor; WidgetTimeColor = widgetTimeColor; WidgetTimeTextColor = widgetTimeTextColor; WidgetBorder = widgetBorder;
             }
         }
 

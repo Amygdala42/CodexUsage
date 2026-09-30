@@ -81,6 +81,14 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-09-30 浅绿配色修订（仍为 1.0.4）：两个饼图改为 #6CCF91 与更浅的 #A8E5BC，背景、边框和布局保持不变。浅色模式倒计时文字单独使用 #246D40，避免浅绿文字在灰色背景上难以辨认。最终构建通过；All 共 **263 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20）。更新后的主题断言先为 22 通过/3 失败，配色修改后为 25/25；所测语义文字最低对比度为深色 6.24:1、浅色 4.81:1。已检查实际渲染位图；本轮未启动绿色构建的原生 GUI。
+
+另对用户已启动的上一份 1626483 层级修复程序做 20 秒只读采样：636 次中浮条均可见且处于任务栏上方，位置尺寸稳定，未采到此前的周期性遮挡。这是上一份程序的窗口元数据观测，不代表绿色构建或所有原生交互已验收。
+
+The 2026-09-30 green revision remains version 1.0.4. Its pies use #6CCF91 and the lighter #A8E5BC; backgrounds, borders and geometry are unchanged. Light-mode countdown text separately uses #246D40 for legibility. Build and All passed **263 checks, zero failures** (Domain 37, Bridge 14, ResetFeed 46, Theme 25, Layout 121, Stacking 20). Updated theme assertions first produced 22 passes and 3 failures, then passed 25/25 after the palette change. Minimum tested semantic text contrast is 6.24:1 dark and 4.81:1 light. Actual rendered bitmaps were inspected; native GUI interaction with the green build was not executed.
+
+A separate 20-second read-only observation of the user's running 1626483 stacking build found the widget visible and above the taskbar in all 636 samples, with stable bounds and no sampled recurrence of the earlier periodic occlusion. This is window metadata from the preceding executable, not native acceptance of the green build or every interaction.
+
 2026-09-30 浮条层级闪烁修订（仍为 1.0.4）：最终构建通过；All 为 Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20，共 **263 项通过、0 失败**。Stacking 对旧的无条件置顶行为为 1 通过/11 失败，事件过滤与排队中间版本为 14 通过/6 失败，最终 20/20；稳定状态连续 100 次检查由 100 次原生写入降为零。
 
 对用户正在运行的上一份 763834c 程序做只读采样：637 次中可见标志、置顶标志和位置尺寸均稳定，相对任务栏却每秒交替落到下方；20 个完整下方区间估计为 313–378ms，中位数 345ms。另一次关联记录中，20 条 Desktop/OBJID_CLIENT(-4)/CHILDID_SELF(0) 重排事件对应 10 次下方和 10 次上方状态。这些是离散窗口元数据，不是逐帧屏幕测量。

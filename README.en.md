@@ -12,7 +12,7 @@ For Windows x64.
 
 ## Features
 
-- The cyan disk and percentage show remaining quota; the blue disk and countdown show time left in the same window.
+- The upper disk and percentage show remaining quota; the lower disk and countdown show time left in the same window.
 - Shows returned quota windows with the same rules for Plus and Pro; Spark quotas are excluded.
 - Refreshes automatically every five minutes, with manual refresh available.
 - Shows the latest public reset announcement and its type, with a separate Source link. Announcements do not confirm an individual account reset.
@@ -40,7 +40,7 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 
 Hover for a quick summary; move away or click to dismiss it. Right-click for the menu. The detail header shows the version and a link to the GitHub project.
 
-Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. Light mode uses a soft neutral-gray background, and the quota and time disks use two shades of blue in both themes. The widget, details, dropdown, tooltip and tray icon update without a restart; the next launch restores your choice.
+Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. Light mode uses a soft neutral-gray background, and the quota and time disks use light green and a lighter green in both themes. The widget, details, dropdown, tooltip and tray icon update without a restart; the next launch restores your choice.
 
 To update, exit the old version from the tray, then replace the EXE. Settings live in `%LOCALAPPDATA%\CodexUsage`; existing settings beside the EXE are imported on first run.
 

@@ -98,14 +98,14 @@ internal static class ThemeTests
         }
         foreach (string selectedMode in new[] { "dark", "light" }) {
             string mode = selectedMode;
-            Run(mode + " widget and glyph use two distinct blue disks", delegate {
+            Run(mode + " widget and glyph use light green and lighter green disks", delegate {
                 SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
                 using (Bitmap widget = Render(2, full, false, false, ""))
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
                     foreach (Color pixel in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46) })
-                        Check(pixel.B - pixel.G >= 45 && pixel.G - pixel.R >= 30, "rendered quota and time disks are blue rather than cyan");
-                    Check(Luminance(quota) - Luminance(time) >= .04, "lighter quota blue and darker time blue remain distinguishable");
+                        Check(pixel.G - pixel.R >= 40 && pixel.G - pixel.B >= 25, "rendered quota and time disks are green");
+                    Check(Luminance(time) - Luminance(quota) >= .15, "time disk is a visibly lighter green than the quota disk");
                 }
             });
             Run(mode + " semantic text meets 4.5:1 contrast on its actual surfaces", delegate {
@@ -117,7 +117,7 @@ internal static class ThemeTests
                 }
                 minimum = Math.Min(minimum, RequireContrast(Theme.Text, Theme.Border, mode + " selected menu text"));
                 minimum = Math.Min(minimum, RequireContrast(Theme.Aqua, Theme.Border, mode + " selection checkmark"));
-                minimum = Math.Min(minimum, RequireContrast(WidgetRenderer.TimeColor, WidgetRenderer.Surface, mode + " countdown"));
+                minimum = Math.Min(minimum, RequireContrast(WidgetRenderer.TimeTextColor, WidgetRenderer.Surface, mode + " countdown"));
                 Console.WriteLine("CONTRAST " + mode + " minimum=" + minimum.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
             });
             foreach (string language in new[] { "zh", "en" }) {
@@ -140,12 +140,12 @@ internal static class ThemeTests
                 });
             }
         }
-        Run("both disk colours and the widget border follow the chosen theme", delegate {
+        Run("green disk colours stay consistent while the widget border follows the theme", delegate {
             QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
             SetMode("dark"); using (Bitmap dark = Render(2, full, false, false, "")) {
                 SetMode("light"); using (Bitmap light = Render(2, full, false, false, "")) {
-                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) > 100, "quota disk switches its actual fill colour");
-                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) > 80, "time disk switches its actual fill colour");
+                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) < 5, "quota disk keeps the same light green in both themes");
+                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) < 5, "time disk keeps the same lighter green in both themes");
                     Check(ColorDistance(dark.GetPixel(1, 40), light.GetPixel(1, 40)) > 150, "widget outline switches its actual stroke colour");
                 }
             }

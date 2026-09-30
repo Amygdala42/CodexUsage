@@ -6,8 +6,8 @@
   Respond to desktop reorder events when the taskbar covers the widget, coalesce checks and raise only when needed; retain the one-second fallback without redundant stable-state raises.
 - 新增深色／浅色模式切换：详情页按钮与右键“外观”菜单均可操作，立即更新配色并保存偏好；旧配置默认深色，版本继续保持 1.0.4。
   Add instant dark/light mode switching from the details button or Appearance menu, with a saved preference and dark defaults for existing settings; keep version 1.0.4.
-- 语言、主题和额度选择合并为同一行；浅色改为柔和的中性浅灰，两个饼图在深浅主题中都使用深浅蓝色。
-  Put language, theme and quota selection on one row, soften the light palette to neutral gray, and use two blue shades for both disks in either theme.
+- 语言、主题和额度选择合并为同一行；浅色改为柔和的中性浅灰，两个饼图在深浅主题中都使用浅绿色和更浅的绿色，背景保持原配色。
+  Put language, theme and quota selection on one row, soften the light palette to neutral gray, and use light green and a lighter green for the disks in either theme while retaining the backgrounds.
 - 固定 Codex 通信输入编码，避免宿主的 UTF-8 BOM 导致握手失败；加强协议错误测试，防止提前断线被误判为通过。
   Make Codex input independent of the host's UTF-8 BOM and ensure protocol tests reach the intended error branch.
 - 正确处理公共公告 304 缓存响应、日期形式的重试间隔和取消；修复缓存头大小写/引号解析及坏响应提前延长缓存的问题，新增离线 HTTP 回归套件。
