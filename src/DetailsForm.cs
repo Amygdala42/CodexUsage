@@ -28,10 +28,9 @@ namespace CodexQuotaLite
   public string SelectedLanguage { get { return UiText.Language; } }
   public string SelectedThemeMode { get { return themeMode; } }
   public string SelectedWindowId { get { return windowChoice.SelectedIndex >= 0 && windowChoice.SelectedIndex < windows.Count ? windows[windowChoice.SelectedIndex].Id : null; } }
-  private float CardsHeight { get { return Math.Max(70, windows.Count * 74 + Math.Max(0, windows.Count - 1) * 8); } }
-  private float ChoiceY { get { return 84 + CardsHeight + 48; } }
-  private float FooterY { get { return ChoiceY + 82; } }
-  private float LogicalHeight { get { return FooterY + 44; } }
+  private float CardsHeight { get { return DetailsLayout.CardsHeight(windows.Count); } }
+  private float FooterY { get { return DetailsLayout.FooterY(windows.Count); } }
+  private float LogicalHeight { get { return DetailsLayout.LogicalHeight(windows.Count); } }
   public DetailsForm(AppSettings settings)
   {
    UiText.Language = settings == null ? "zh" : settings.Language;
@@ -103,8 +102,8 @@ namespace CodexQuotaLite
    // A clock/usage repaint must not dismiss a choice that the user is making.
    if(scale!=nextScale||ClientSize!=nextSize)windowChoice.CloseDropDown();
    scale=nextScale;ClientSize=nextSize;
-   foreach(Control control in Controls){Font previous=control.Font;Font next=new Font("Microsoft YaHei UI",(control==github||control==version?12:control==status||control==updated?10:11)*scale,FontStyle.Regular,GraphicsUnit.Pixel);if(next.Equals(previous))next.Dispose();else{control.Font=next;if(previous!=Font&&previous!=SystemFonts.DefaultFont)previous.Dispose();}}
-   windowChoice.ItemHeight=(int)(21*scale);LayoutControls();Invalidate();
+   foreach(Control control in Controls){Font previous=control.Font;Font next=new Font(DetailsLayout.ControlFontFamily,(control==github||control==version?12:control==status||control==updated?10:DetailsLayout.ControlFontSize)*scale,FontStyle.Regular,GraphicsUnit.Pixel);if(next.Equals(previous))next.Dispose();else{control.Font=next;if(previous!=Font&&previous!=SystemFonts.DefaultFont)previous.Dispose();}}
+   windowChoice.ItemHeight=DetailsLayout.ChoiceItemHeight(scale);LayoutControls();Invalidate();
   }
   protected override void OnSizeChanged(EventArgs e)
   {
@@ -119,8 +118,8 @@ namespace CodexQuotaLite
    Box(version,176,18,43,28);Box(github,222,18,82,28);
    Box(resetNotice,20,84+CardsHeight+10,262,28);
    Box(resetSource,290,84+CardsHeight+10,50,28);
-   Box(languageChoice,20,ChoiceY,76,28);Box(themeChoice,108,ChoiceY,112,28);
-   Box(windowChoice,20,ChoiceY+36,320,28);
+   DetailsLayout.Row choiceRow=DetailsLayout.ChoiceRow(windows.Count,scale);
+   languageChoice.Bounds=choiceRow.Language;themeChoice.Bounds=choiceRow.Theme;windowChoice.Bounds=choiceRow.Selector;
    Box(status,20,FooterY,124,28);Box(updated,148,FooterY,112,28);Box(refresh,268,FooterY,72,28);
    for(int i=0;i<cards.Controls.Count;i++){UiQuotaCard card=(UiQuotaCard)cards.Controls[i];card.ScaleFactor=scale;card.Bounds=Rectangle.Round(new RectangleF(0,i*82*scale,320*scale,74*scale));}
   }
@@ -133,8 +132,8 @@ namespace CodexQuotaLite
    github.Text=UiText.T("GITHUB主页","GITHUB");github.AccessibleName=UiText.T("打开 GitHub 项目主页","Open the GitHub project page");
    version.AccessibleName=UiText.T("版本 ","Version ")+version.Text;
    cards.AccessibleName=UiText.T("全部额度窗口","All usage windows");close.AccessibleName=UiText.T("关闭详情","Close details");
-   languageChoice.Text=UiText.T("English","中文");languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
-   themeChoice.Text=Theme.IsDark?UiText.T("浅色模式","Light mode"):UiText.T("深色模式","Dark mode");
+   languageChoice.Text=DetailsLayout.LanguageCaption();languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
+   themeChoice.Text=DetailsLayout.ThemeCaption(Theme.IsDark);
    themeChoice.AccessibleName=Theme.IsDark?UiText.T("切换到浅色模式","Switch to light mode"):UiText.T("切换到深色模式","Switch to dark mode");
    themeChoice.AccessibleDescription=Theme.IsDark?UiText.T("当前为深色模式","Currently using dark mode"):UiText.T("当前为浅色模式","Currently using light mode");
    windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");

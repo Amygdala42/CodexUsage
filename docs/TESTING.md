@@ -40,15 +40,16 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite Bridge
 ./scripts/test.ps1 -Suite ResetFeed
 ./scripts/test.ps1 -Suite Theme
+./scripts/test.ps1 -Suite Layout
 ./scripts/test.ps1 -Suite All
 
 # 只编译 / Compile only
 ./scripts/test.ps1 -Suite All -BuildOnly
 ```
 
-`All` 包含 Domain、Bridge、ResetFeed 和 Theme。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`。
+`All` 包含 Domain、Bridge、ResetFeed、Theme 和 Layout。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`；Layout 将逐项字体测量写入 `env/tests/layout-compact/`。
 
-`All` runs Domain, Bridge, ResetFeed and Theme. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`.
+`All` runs Domain, Bridge, ResetFeed, Theme and Layout. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`; Layout writes individual font measurements to `env/tests/layout-compact/`.
 
 脚本需在本机策略允许的 PowerShell 中运行。若系统明确拒绝脚本或测试程序，停止该入口并记录错误，不通过更改策略、改名或换宿主绕过。2026-09-30 本机 PowerShell 7.6.5 可运行原测试入口；Windows PowerShell 5.1 的脚本入口被执行策略拒绝，该环境未完成运行验证。
 
@@ -62,18 +63,35 @@ Use a PowerShell installation in which local policy permits these scripts. If a 
 | Bridge | 模拟服务握手、通知与响应、安全错误、超时、取消、异常退出及子进程清理 |
 | ResetFeed | 本机 HTTP 服务、304、ETag、缓存策略、秒数/日期重试、坏响应、取消、超时及原子缓存 |
 | Theme | 深浅切换与恢复、额度条/图标真实像素、100/150/200% 绘图比例、透明圆角、文字对比度、双语状态及额度数据不变 |
+| Layout | Plus/Pro 合成响应经生产解析器生成的标签、共享布局几何、同一行控件无重叠、真实字体宽高、选择器箭头及加宽下拉列表的文字/勾选预留空间 |
 
 Domain covers parsing, calculations, settings, and runtime data paths. Bridge launches a fake server to exercise protocol and process handling. ResetFeed uses a loopback server to test the production HTTP and cache implementation without external service dependencies.
 
 Domain additionally checks old/invalid theme preferences and light/dark persistence without changing other settings. Theme checks real bitmap output and semantic text contrast in both palettes. Its 100/150/200% image scaling checks do not establish native Windows DPI, menu or window-layout behavior.
 
+Layout 使用实际生产布局与 GDI 字体测量检查 Plus/Pro 中英文文案，按钮每边额外预留 4 个逻辑像素。它不创建原生控件，也不代表真实 Plus/Pro 账号登录、窗口点击或 Windows DPI 验收。未知超长额度名称继续省略显示；没有承诺任意标签都能完整显示。
+
+Layout uses production geometry and GDI font measurements for Chinese/English Plus and Pro labels, with an extra four logical pixels reserved at each button edge. It does not create native controls or establish live-account, click or Windows DPI acceptance. Unknown long quota labels retain ellipsis; arbitrary labels are not guaranteed to fit in full.
+
 ## 结果 / Results
 
-2026-09-30 主题版（版本仍为 1.0.4）：最终构建通过；All 为 Domain 37/37、Bridge 14/14、ResetFeed 46/46、Theme 21/21，共 118 项、0 失败。新增主题设置检查先出现 3 项失败，修复后通过；最终主题位图套件对旧版为 12 通过、9 失败，对新版为 21 通过。恢复深色后额度条及图标 PNG 与旧版逐字节一致。所测正文/语义颜色组合的最低对比度为深色 5.20:1、浅色 4.81:1。
+2026-09-30 单行布局与浅灰/双蓝修订（仍为 1.0.4）：最终构建通过；All 为 Domain 37/37、Bridge 14/14、ResetFeed 46/46、Theme 25/25、Layout 121/121，共 **243 项、0 失败**。语言、主题和额度选择同排，详情页高度减少 36 个逻辑像素；下拉列表单独加宽并限制在工作区宽度内。
+
+Layout 对真实解析器生成的 Plus、Pro 和多额度桶中英文标签完成 624 条 GDI 字体测量，覆盖 75/100/125/150/175/200% 几何比例及两种主题按钮文案，全部解析为 Microsoft YaHei UI 字体。宽高均无超限；75% 最小横向余量 1 像素，100–200% 至少 7 像素。最初的行宽方案出现 14 项失败，下拉列表宽度另出现 8 项失败，调整生产共用几何后全部通过。未知长标签仍使用单行省略号；字体替换、低于 75% 的极小工作区及原生 Windows DPI 行为不在已验证范围。
+
+浅色背景/卡片/额度条分别为 #E5E5E5/#EFEFEF/#E8E8E8；两主题的两个饼图均使用深浅不同的蓝色。主题位图检查为 25/25；最终新增的中性灰和双蓝断言在调整前出现 3 项失败，调整后通过。所测语义文字最低对比度为深色 4.71:1、浅色 4.81:1。本轮独立审查未发现剩余阻断问题；未执行原生 GUI 或真实 Plus 登录。
+
+The final 2026-09-30 compact gray/blue revision still uses version 1.0.4. Build and All passed: Domain 37, Bridge 14, ResetFeed 46, Theme 25 and Layout 121 — **243 checks, zero failures**. Shared production geometry puts all three controls on one row, removes 36 logical pixels of height and gives the popup a separate width bounded by the work area.
+
+Layout recorded 624 real GDI font measurements for parser-generated Plus, Pro and multi-bucket Chinese/English labels at 75/100/125/150/175/200 percent, with both theme captions. All resolved to Microsoft YaHei UI; none exceeded its width or height budget. Minimum horizontal spare was 1 pixel at 75 percent and at least 7 pixels at 100–200 percent. The first row allocation failed 14 checks; the narrow popup failed another 8 before repair. Long unknown labels retain ellipsis. Fallback fonts, scales below 75 percent and native Windows DPI behavior remain unverified.
+
+Light background/card/widget are #E5E5E5/#EFEFEF/#E8E8E8, with two blue pie colors in both themes. Theme checks passed 25/25 after three new neutral-gray/two-blue assertions failed on the prior palette. Minimum tested semantic text contrast is 4.71:1 dark and 4.81:1 light. Independent review found no remaining blockers; no native GUI or live Plus login was performed.
+
+2026-09-30 上一轮主题版（提交 e3f2cd8，本轮浅灰/双蓝配色调整前，版本仍为 1.0.4）：最终构建通过；All 为 Domain 37/37、Bridge 14/14、ResetFeed 46/46、Theme 21/21，共 118 项、0 失败。新增主题设置检查先出现 3 项失败，修复后通过；最终主题位图套件对旧版为 12 通过、9 失败，对新版为 21 通过。恢复深色后额度条及图标 PNG 与旧版逐字节一致。所测正文/语义颜色组合的最低对比度为深色 5.20:1、浅色 4.81:1。
 
 独立代码审查覆盖两种入口、菜单状态、已有控件重着色、主题持久化与托盘图标释放；审查中发现并修正了自绘提示框默认单行绘制导致原有换行丢失的问题，随后最终构建通过。本轮没有运行原生窗口、菜单或提示框交互测试；下面的真实服务记录来自此前修复版，不能当作主题版 GUI 验收。
 
-The 2026-09-30 theme build retains version 1.0.4. The final build succeeded and All passed Domain 37/37, Bridge 14/14, ResetFeed 46/46 and Theme 21/21: 118 checks, zero failures. The three new preference checks failed before implementation. The final bitmap suite produced 12 passes and 9 failures on the old renderer, then 21 passes on the new one. Restoring dark mode reproduces the original widget and glyph PNG bytes. The minimum tested semantic text contrast is 5.20:1 in dark mode and 4.81:1 in light mode.
+The earlier 2026-09-30 theme build (commit e3f2cd8, before this neutral-gray/two-blue revision) retains version 1.0.4. The final build succeeded and All passed Domain 37/37, Bridge 14/14, ResetFeed 46/46 and Theme 21/21: 118 checks, zero failures. The three new preference checks failed before implementation. The final bitmap suite produced 12 passes and 9 failures on the old renderer, then 21 passes on the new one. Restoring dark mode reproduces the original widget and glyph PNG bytes. The minimum tested semantic text contrast is 5.20:1 in dark mode and 4.81:1 in light mode.
 
 Independent review covered both entry points, menu state, existing-control recoloring, persistence and tray-icon disposal. It caught and resolved a single-line drawing default that would discard the tooltip's existing line break, followed by a successful final build. Native window, menu and tooltip interaction were not executed. The live-service evidence below belongs to the earlier repair build and is not GUI acceptance of the theme build.
 

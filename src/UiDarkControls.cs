@@ -70,14 +70,13 @@ namespace CodexQuotaLite
             float radius = Math.Max(4, Height * .23f);
             Theme.Rounded(g, new RectangleF(.5f, .5f, Width - 1, Height - 1), radius, Theme.Card,
                 Focused || IsDroppedDown ? Theme.Aqua : hovering ? Theme.Muted : Theme.Border);
-            int pad = Math.Max(7, Height / 4);
-            Rectangle text = new Rectangle(pad, 0, Math.Max(1, Width - pad - Height), Height);
+            Rectangle text = DetailsLayout.SelectorTextBounds(ClientSize);
             string value = SelectedIndex < 0 ? UiText.T("暂无额度", "No windows") : Convert.ToString(Items[SelectedIndex]);
             TextRenderer.DrawText(g, value, Font, text, Enabled ? Theme.Text : Theme.Muted,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding);
-            float x = Width - Height * .53f, y = Height * .47f, arrow = Math.Max(3, Height * .12f);
+                DetailsLayout.SelectorTextFlags);
+            RectangleF arrow = DetailsLayout.SelectorArrowBounds(ClientSize);
             using (Pen pen = new Pen(Enabled ? Theme.Muted : Theme.Border, Math.Max(1.2f, Height / 22f)))
-            { pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; g.DrawLines(pen, new PointF[] { new PointF(x - arrow, y - arrow / 2), new PointF(x, y + arrow / 2), new PointF(x + arrow, y - arrow / 2) }); }
+            { pen.StartCap = LineCap.Round; pen.EndCap = LineCap.Round; g.DrawLines(pen, new PointF[] { new PointF(arrow.Left, arrow.Top), new PointF(arrow.Left+arrow.Width/2, arrow.Bottom), new PointF(arrow.Right, arrow.Top) }); }
         }
 
         protected override void OnMouseEnter(EventArgs e) { hovering = true; Invalidate(); base.OnMouseEnter(e); }
@@ -115,11 +114,11 @@ namespace CodexQuotaLite
             if (!Enabled || Items.Count == 0 || IsDroppedDown) return;
             DisposePopup();
             Rectangle area = Screen.FromControl(this).WorkingArea;
-            int rowHeight = Math.Max(Font.Height + 10, ItemHeight + 6);
+            int rowHeight = DetailsLayout.PopupRowHeight(Font.Height, ItemHeight);
             int visible = Math.Min(8, Items.Count);
             int height = Math.Min(visible * rowHeight + 8, Math.Max(rowHeight + 8, area.Height / 2));
             list = new UiChoiceList(this, rowHeight);
-            list.Font = Font; list.Size = new Size(Math.Max(Width, Math.Min(100, area.Width - 24)), height);
+            list.Font = Font; list.Size = new Size(DetailsLayout.PopupWidth(ClientSize, area.Width), height);
             ToolStripControlHost host = new ToolStripControlHost(list);
             host.Margin = Padding.Empty; host.Padding = Padding.Empty; host.AutoSize = false; host.Size = list.Size;
             popup = new ToolStripDropDown();
@@ -176,12 +175,12 @@ namespace CodexQuotaLite
                 for (int row = 0; row < VisibleRows && first + row < owner.Items.Count; row++)
                 {
                     int index = first + row;
-                    Rectangle rect = new Rectangle(4, 4 + row * rowHeight, Width - 8, rowHeight);
+                    Rectangle rect = DetailsLayout.PopupRowBounds(Width, rowHeight, row);
                     if (index == active) Theme.Rounded(e.Graphics, rect, 5, Theme.Border, null);
-                    Rectangle text = new Rectangle(rect.Left + 10, rect.Top, rect.Width - 34, rect.Height);
+                    Rectangle text = DetailsLayout.PopupTextBounds(rect);
                     TextRenderer.DrawText(e.Graphics, Convert.ToString(owner.Items[index]), Font, text, Theme.Text,
-                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding);
-                    if (index == owner.SelectedIndex) TextRenderer.DrawText(e.Graphics, "✓", Font, new Rectangle(rect.Right - 24, rect.Top, 20, rect.Height), Theme.Aqua, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
+                        DetailsLayout.SelectorTextFlags);
+                    if (index == owner.SelectedIndex) TextRenderer.DrawText(e.Graphics, "✓", Font, DetailsLayout.PopupCheckBounds(rect), Theme.Aqua, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
                 }
                 if (owner.Items.Count > VisibleRows)
                 {

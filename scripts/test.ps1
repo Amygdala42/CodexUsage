@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'All')][string]$Suite = 'Domain',
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'All')][string]$Suite = 'Domain',
     [switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -55,6 +55,14 @@ try {
         if (-not $BuildOnly) {
             & $theme (Join-Path $outputRoot 'theme-render')
             if ($LASTEXITCODE -ne 0) { throw ('Theme checks failed with exit code ' + $LASTEXITCODE) }
+        }
+    }
+    if ($Suite -eq 'Layout' -or $Suite -eq 'All') {
+        $inputs = @('DetailsLayout.cs','QuotaModels.cs','QuotaParser.cs','UiText.cs') | ForEach-Object { Join-Path $sourceRoot $_ }
+        $layout = Build-Check 'DetailsLayoutTests' (@((Join-Path $testRoot 'DetailsLayoutTests.cs')) + $inputs) @('/r:System.Drawing.dll','/r:System.Windows.Forms.dll')
+        if (-not $BuildOnly) {
+            & $layout (Join-Path $outputRoot 'layout-compact')
+            if ($LASTEXITCODE -ne 0) { throw ('Layout checks failed with exit code ' + $LASTEXITCODE) }
         }
     }
     if ($BuildOnly) { Write-Output 'Test compilation completed. No tests were executed.' }

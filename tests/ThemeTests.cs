@@ -30,9 +30,37 @@ internal static class ThemeTests
                     darkGlyph.Save(Path.Combine(output, "glyph-dark.png"), ImageFormat.Png); lightGlyph.Save(Path.Combine(output, "glyph-light.png"), ImageFormat.Png);
                     Check(DifferentPixels(dark, light) > dark.Width * dark.Height / 2, "light changes most widget pixels");
                     Check(DifferentPixels(darkGlyph, lightGlyph) > 300, "light changes the real glyph");
-                    Check(Luminance(light.GetPixel(4, 20)) > .8 && Luminance(dark.GetPixel(4, 20)) < .1, "surface changes from dark to light");
+                    double lightSurface = Luminance(light.GetPixel(4, 20)), darkSurface = Luminance(dark.GetPixel(4, 20));
+                    Check(lightSurface - darkSurface > .5 && lightSurface >= .65 && lightSurface <= .9,
+                        "light surface is distinctly lighter than dark without an almost-white background");
                     Check(Mode() == "light" && !IsDark(), "reported mode follows rendered light palette");
                 }
+            }
+        });
+        Run("light background, card and widget are soft grey with visible layers", delegate {
+            SetMode("light");
+            using (var panel = new Bitmap(100, 100, PixelFormat.Format32bppArgb))
+            using (Graphics graphics = Graphics.FromImage(panel))
+            using (Bitmap widget = Render(1, Sample(), false, false, "")) {
+                graphics.Clear(Theme.Background);
+                Theme.Rounded(graphics, new RectangleF(15, 15, 70, 70), 10, Theme.Card, Theme.Border);
+                double background = Luminance(panel.GetPixel(5, 50)), card = Luminance(panel.GetPixel(50, 50));
+                double surface = Luminance(widget.GetPixel(4, 20));
+                foreach (double luminance in new[] { background, card, surface })
+                    Check(luminance >= .65 && luminance <= .9, "rendered light surfaces avoid near-white glare");
+                Check(card - background >= .04 && surface > background && surface < card,
+                    "card and widget remain distinct lighter layers above the background");
+            }
+        });
+        Run("light background, card and widget render as neutral grey without a blue tint", delegate {
+            SetMode("light");
+            using (var panel = new Bitmap(100, 100, PixelFormat.Format32bppArgb))
+            using (Graphics graphics = Graphics.FromImage(panel))
+            using (Bitmap widget = Render(1, Sample(), false, false, "")) {
+                graphics.Clear(Theme.Background);
+                Theme.Rounded(graphics, new RectangleF(15, 15, 70, 70), 10, Theme.Card, Theme.Border);
+                foreach (Color pixel in new[] { panel.GetPixel(5, 50), panel.GetPixel(50, 50), widget.GetPixel(4, 20) })
+                    Check(pixel.R == pixel.G && pixel.G == pixel.B, "actual large surfaces have equal red, green and blue channels");
             }
         });
         foreach (float scale in new[] { 1f, 1.5f, 2f }) {
@@ -70,6 +98,16 @@ internal static class ThemeTests
         }
         foreach (string selectedMode in new[] { "dark", "light" }) {
             string mode = selectedMode;
+            Run(mode + " widget and glyph use two distinct blue disks", delegate {
+                SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
+                using (Bitmap widget = Render(2, full, false, false, ""))
+                using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
+                    Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
+                    foreach (Color pixel in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46) })
+                        Check(pixel.B - pixel.G >= 45 && pixel.G - pixel.R >= 30, "rendered quota and time disks are blue rather than cyan");
+                    Check(Luminance(quota) - Luminance(time) >= .04, "lighter quota blue and darker time blue remain distinguishable");
+                }
+            });
             Run(mode + " semantic text meets 4.5:1 contrast on its actual surfaces", delegate {
                 SetMode(mode); Check(Mode() == mode, "requested mode is active");
                 double minimum = Double.MaxValue;

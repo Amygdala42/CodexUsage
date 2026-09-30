@@ -12,12 +12,12 @@ namespace CodexQuotaLite
             Color.FromArgb(16, 23, 36), Color.FromArgb(25, 35, 51), Color.FromArgb(48, 63, 82),
             Color.FromArgb(238, 245, 250), Color.FromArgb(150, 169, 188), Color.FromArgb(70, 224, 196),
             Color.FromArgb(106, 163, 255), Color.FromArgb(245, 193, 117),
-            Color.FromArgb(24, 31, 39), Color.FromArgb(58, 190, 215), Color.FromArgb(51, 154, 197), Color.FromArgb(66, 77, 86));
+            Color.FromArgb(24, 31, 39), Color.FromArgb(91, 165, 245), Color.FromArgb(63, 137, 232), Color.FromArgb(66, 77, 86));
         private static readonly Palette Light = new Palette("light",
-            Color.FromArgb(246, 248, 251), Color.White, Color.FromArgb(216, 224, 234),
+            Color.FromArgb(229, 229, 229), Color.FromArgb(239, 239, 239), Color.FromArgb(216, 224, 234),
             Color.FromArgb(31, 42, 55), Color.FromArgb(79, 96, 114), Color.FromArgb(0, 107, 97),
             Color.FromArgb(32, 86, 170), Color.FromArgb(139, 82, 0),
-            Color.FromArgb(247, 249, 252), Color.FromArgb(0, 111, 133), Color.FromArgb(22, 102, 156), Color.FromArgb(174, 185, 199));
+            Color.FromArgb(232, 232, 232), Color.FromArgb(43, 103, 183), Color.FromArgb(32, 82, 153), Color.FromArgb(174, 185, 199));
         private static Palette current = Dark;
 
         internal static void Apply(string mode) { current = mode == "light" ? Light : Dark; }
