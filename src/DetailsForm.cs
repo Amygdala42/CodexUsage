@@ -16,24 +16,26 @@ namespace CodexQuotaLite
   private readonly LinkLabel resetSource = new LinkLabel();
   private ResetFeed resetFeed;
   private readonly Label version = new Label();
-  private readonly Button refresh = new Button(), close = new Button(), languageChoice = new Button();
+  private readonly Button refresh = new Button(), close = new Button(), languageChoice = new Button(), themeChoice = new Button();
   private readonly UiDarkChoice windowChoice = new UiDarkChoice();
   private readonly List<QuotaWindow> windows = new List<QuotaWindow>();
   private bool binding, quitting, lastStale, lastBusy;
   private WidgetForm anchor;
   private QuotaSnapshot lastSnapshot;
-  private string lastSelectedId, lastMessage, lastSettingsMessage;
+  private string lastSelectedId, lastMessage, lastSettingsMessage, themeMode;
   public event EventHandler RefreshRequested;
   public event EventHandler SettingsChanged;
   public string SelectedLanguage { get { return UiText.Language; } }
+  public string SelectedThemeMode { get { return themeMode; } }
   public string SelectedWindowId { get { return windowChoice.SelectedIndex >= 0 && windowChoice.SelectedIndex < windows.Count ? windows[windowChoice.SelectedIndex].Id : null; } }
   private float CardsHeight { get { return Math.Max(70, windows.Count * 74 + Math.Max(0, windows.Count - 1) * 8); } }
   private float ChoiceY { get { return 84 + CardsHeight + 48; } }
-  private float FooterY { get { return ChoiceY + 46; } }
+  private float FooterY { get { return ChoiceY + 82; } }
   private float LogicalHeight { get { return FooterY + 44; } }
   public DetailsForm(AppSettings settings)
   {
    UiText.Language = settings == null ? "zh" : settings.Language;
+   Theme.Apply(settings == null ? "dark" : settings.ThemeMode);themeMode=Theme.Mode;
    FormBorderStyle=FormBorderStyle.None;StartPosition=FormStartPosition.Manual;ShowInTaskbar=false;
    AutoScaleMode=AutoScaleMode.None;BackColor=Theme.Background;DoubleBuffered=true;KeyPreview=true;
    cards.AutoScroll=false;cards.BackColor=Theme.Background;
@@ -67,14 +69,31 @@ namespace CodexQuotaLite
     SetState(lastSnapshot,SelectedWindowId??lastSelectedId,lastStale,lastBusy,lastMessage,lastSettingsMessage);
     if(SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);
    };
+   SetupButton(themeChoice);themeChoice.Click+=delegate{
+    SetTheme(themeMode=="dark"?"light":"dark");
+    if(SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);
+   };
    status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=false;
    status.TextAlign=ContentAlignment.MiddleLeft;updated.TextAlign=ContentAlignment.MiddleLeft;
    windowChoice.BackColor=Theme.Card;windowChoice.ForeColor=Theme.Text;
-   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,windowChoice,github,version,resetNotice,resetSource});
+   Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,themeChoice,windowChoice,github,version,resetNotice,resetSource});
    windowChoice.SelectedIndexChanged+=delegate{if(!binding&&SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);};
    ApplyScale(100);SetState(null,null,false,false,null,null);
   }
-  private static void SetupButton(Button button){button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderColor=Theme.Border;button.FlatAppearance.MouseOverBackColor=Theme.Border;button.BackColor=Theme.Card;button.ForeColor=Theme.Text;button.Cursor=Cursors.Hand;}
+  private static void SetupButton(Button button){button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderColor=Theme.Border;button.FlatAppearance.MouseOverBackColor=Theme.Border;button.FlatAppearance.MouseDownBackColor=Theme.Border;button.BackColor=Theme.Card;button.ForeColor=Theme.Text;button.Cursor=Cursors.Hand;}
+  internal void SetTheme(string mode)
+  {
+   Theme.Apply(mode);themeMode=Theme.Mode;
+   BackColor=Theme.Background;cards.BackColor=Theme.Background;
+   foreach(Control control in Controls){control.BackColor=Theme.Background;control.ForeColor=Theme.Text;}
+   foreach(Button button in new[]{close,refresh,languageChoice,themeChoice})SetupButton(button);
+   foreach(LinkLabel link in new[]{github,resetSource}){link.LinkColor=Theme.Blue;link.ActiveLinkColor=Theme.Aqua;link.VisitedLinkColor=Theme.Blue;}
+   resetNotice.ForeColor=Theme.Muted;version.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;
+   foreach(Control card in cards.Controls){card.BackColor=Theme.Background;card.Invalidate();}
+   windowChoice.ApplyTheme();
+   SetState(lastSnapshot,SelectedWindowId??lastSelectedId,lastStale,lastBusy,lastMessage,lastSettingsMessage);
+   Invalidate(true);
+  }
   private void ShowLinkError(){MessageBox.Show(this,UiText.T("无法打开浏览器。项目主页：https://github.com/Amygdala42/CodexUsage","Could not open your browser. Project page: https://github.com/Amygdala42/CodexUsage"),UiText.AppName,MessageBoxButtons.OK,MessageBoxIcon.Information);}
   public void ApplyScale(int ignoredLegacyPercent){using(Graphics g=CreateGraphics())preferredScale=g.DpiX/96f;FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);}
   private void FitToWorkingArea(Rectangle area)
@@ -100,7 +119,8 @@ namespace CodexQuotaLite
    Box(version,176,18,43,28);Box(github,222,18,82,28);
    Box(resetNotice,20,84+CardsHeight+10,262,28);
    Box(resetSource,290,84+CardsHeight+10,50,28);
-   Box(languageChoice,20,ChoiceY,76,28);Box(windowChoice,108,ChoiceY,232,28);
+   Box(languageChoice,20,ChoiceY,76,28);Box(themeChoice,108,ChoiceY,112,28);
+   Box(windowChoice,20,ChoiceY+36,320,28);
    Box(status,20,FooterY,124,28);Box(updated,148,FooterY,112,28);Box(refresh,268,FooterY,72,28);
    for(int i=0;i<cards.Controls.Count;i++){UiQuotaCard card=(UiQuotaCard)cards.Controls[i];card.ScaleFactor=scale;card.Bounds=Rectangle.Round(new RectangleF(0,i*82*scale,320*scale,74*scale));}
   }
@@ -114,6 +134,9 @@ namespace CodexQuotaLite
    version.AccessibleName=UiText.T("版本 ","Version ")+version.Text;
    cards.AccessibleName=UiText.T("全部额度窗口","All usage windows");close.AccessibleName=UiText.T("关闭详情","Close details");
    languageChoice.Text=UiText.T("English","中文");languageChoice.AccessibleName=UiText.T("切换为英文","Switch to Chinese");
+   themeChoice.Text=Theme.IsDark?UiText.T("浅色模式","Light mode"):UiText.T("深色模式","Dark mode");
+   themeChoice.AccessibleName=Theme.IsDark?UiText.T("切换到浅色模式","Switch to light mode"):UiText.T("切换到深色模式","Switch to dark mode");
+   themeChoice.AccessibleDescription=Theme.IsDark?UiText.T("当前为深色模式","Currently using dark mode"):UiText.T("当前为浅色模式","Currently using light mode");
    windowChoice.AccessibleName=UiText.T("浮条展示的额度窗口","Usage window shown in the widget");
    status.AccessibleName=UiText.T("刷新状态","Refresh status");updated.AccessibleName=UiText.T("上次更新时间","Last successful update");refresh.AccessibleName=UiText.T("立即刷新套餐和额度","Refresh plan and usage");
    binding=true;

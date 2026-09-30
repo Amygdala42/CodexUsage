@@ -11,6 +11,7 @@ namespace CodexQuotaLite
         public bool AlwaysOnTop { get; set; }
         public int ScalePercent { get; set; }
         public string Language { get; set; }
+        public string ThemeMode { get; set; }
         public string SelectedWindowId { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
@@ -22,6 +23,7 @@ namespace CodexQuotaLite
             AlwaysOnTop = true;
             ScalePercent = 100;
             Language = "zh";
+            ThemeMode = "dark";
             DockToTaskbar = true;
         }
     }
@@ -168,6 +170,7 @@ namespace CodexQuotaLite
             sanitized.AlwaysOnTop = source.AlwaysOnTop;
             sanitized.ScalePercent = 100;
             sanitized.Language = source.Language == "en" ? "en" : "zh";
+            sanitized.ThemeMode = source.ThemeMode == "light" ? "light" : "dark";
             sanitized.SelectedWindowId = string.IsNullOrWhiteSpace(source.SelectedWindowId)
                 ? null
                 : source.SelectedWindowId.Trim();

@@ -8,14 +8,47 @@ namespace CodexQuotaLite
 {
     internal static class Theme
     {
-        internal static readonly Color Background = Color.FromArgb(16, 23, 36);
-        internal static readonly Color Card = Color.FromArgb(25, 35, 51);
-        internal static readonly Color Border = Color.FromArgb(48, 63, 82);
-        internal static readonly Color Text = Color.FromArgb(238, 245, 250);
-        internal static readonly Color Muted = Color.FromArgb(150, 169, 188);
-        internal static readonly Color Aqua = Color.FromArgb(70, 224, 196);
-        internal static readonly Color Blue = Color.FromArgb(106, 163, 255);
-        internal static readonly Color Warning = Color.FromArgb(245, 193, 117);
+        private static readonly Palette Dark = new Palette("dark",
+            Color.FromArgb(16, 23, 36), Color.FromArgb(25, 35, 51), Color.FromArgb(48, 63, 82),
+            Color.FromArgb(238, 245, 250), Color.FromArgb(150, 169, 188), Color.FromArgb(70, 224, 196),
+            Color.FromArgb(106, 163, 255), Color.FromArgb(245, 193, 117),
+            Color.FromArgb(24, 31, 39), Color.FromArgb(58, 190, 215), Color.FromArgb(51, 154, 197), Color.FromArgb(66, 77, 86));
+        private static readonly Palette Light = new Palette("light",
+            Color.FromArgb(246, 248, 251), Color.White, Color.FromArgb(216, 224, 234),
+            Color.FromArgb(31, 42, 55), Color.FromArgb(79, 96, 114), Color.FromArgb(0, 107, 97),
+            Color.FromArgb(32, 86, 170), Color.FromArgb(139, 82, 0),
+            Color.FromArgb(247, 249, 252), Color.FromArgb(0, 111, 133), Color.FromArgb(22, 102, 156), Color.FromArgb(174, 185, 199));
+        private static Palette current = Dark;
+
+        internal static void Apply(string mode) { current = mode == "light" ? Light : Dark; }
+        internal static string Mode { get { return current.Mode; } }
+        internal static bool IsDark { get { return current == Dark; } }
+        internal static Color Background { get { return current.Background; } }
+        internal static Color Card { get { return current.Card; } }
+        internal static Color Border { get { return current.Border; } }
+        internal static Color Text { get { return current.Text; } }
+        internal static Color Muted { get { return current.Muted; } }
+        internal static Color Aqua { get { return current.Aqua; } }
+        internal static Color Blue { get { return current.Blue; } }
+        internal static Color Warning { get { return current.Warning; } }
+        internal static Color WidgetSurface { get { return current.WidgetSurface; } }
+        internal static Color WidgetQuotaColor { get { return current.WidgetQuotaColor; } }
+        internal static Color WidgetTimeColor { get { return current.WidgetTimeColor; } }
+        internal static Color WidgetBorder { get { return current.WidgetBorder; } }
+
+        private sealed class Palette
+        {
+            internal readonly string Mode;
+            internal readonly Color Background, Card, Border, Text, Muted, Aqua, Blue, Warning;
+            internal readonly Color WidgetSurface, WidgetQuotaColor, WidgetTimeColor, WidgetBorder;
+            internal Palette(string mode, Color background, Color card, Color border, Color text, Color muted,
+                Color aqua, Color blue, Color warning, Color widgetSurface, Color widgetQuotaColor, Color widgetTimeColor, Color widgetBorder)
+            {
+                Mode = mode; Background = background; Card = card; Border = border; Text = text; Muted = muted;
+                Aqua = aqua; Blue = blue; Warning = warning; WidgetSurface = widgetSurface;
+                WidgetQuotaColor = widgetQuotaColor; WidgetTimeColor = widgetTimeColor; WidgetBorder = widgetBorder;
+            }
+        }
 
         internal static GraphicsPath Round(RectangleF bounds, float radius)
         {

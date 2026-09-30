@@ -17,10 +17,15 @@ namespace CodexQuotaLite
         private readonly WidgetForm widget;
         private readonly DetailsForm details;
         private readonly NotifyIcon tray;
-        private readonly Icon trayIcon;
+        private Icon trayIcon;
         private readonly ContextMenuStrip menu;
         private readonly ToolStripMenuItem visibilityItem;
         private readonly ToolStripMenuItem refreshItem;
+        private readonly ToolStripMenuItem detailsItem;
+        private readonly ToolStripMenuItem appearanceItem;
+        private readonly ToolStripMenuItem darkThemeItem;
+        private readonly ToolStripMenuItem lightThemeItem;
+        private readonly ToolStripMenuItem exitItem;
         private readonly System.Windows.Forms.Timer refreshTimer;
         private readonly System.Windows.Forms.Timer clockTimer;
         private readonly System.Windows.Forms.Timer taskbarTimer;
@@ -52,6 +57,8 @@ namespace CodexQuotaLite
             settings = appSettings ?? new AppSettings();
             settings.ScalePercent = 100;
             UiText.Language = settings.Language;
+            Theme.Apply(settings.ThemeMode);
+            settings.ThemeMode = Theme.Mode;
             widget = new WidgetForm();
             details = new DetailsForm(settings);
             resetFeed = new ResetFeed(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexUsage", "reset-announcement.json"));
@@ -71,11 +78,19 @@ namespace CodexQuotaLite
             menu.Renderer = new ToolStripProfessionalRenderer(new MenuColors());
             visibilityItem = new ToolStripMenuItem("隐藏浮条", null, delegate { ToggleWidget(); });
             refreshItem = new ToolStripMenuItem("立即刷新", null, async delegate { await RefreshAsync(); });
+            detailsItem = new ToolStripMenuItem("查看用量详情", null, delegate { ShowDetails(); });
+            appearanceItem = new ToolStripMenuItem("外观");
+            darkThemeItem = new ToolStripMenuItem("深色模式", null, delegate { ChangeTheme("dark"); });
+            lightThemeItem = new ToolStripMenuItem("浅色模式", null, delegate { ChangeTheme("light"); });
+            appearanceItem.DropDownItems.AddRange(new ToolStripItem[] { darkThemeItem, lightThemeItem });
+            exitItem = new ToolStripMenuItem("退出", null, delegate { ExitThread(); });
             menu.Items.Add(visibilityItem);
-            menu.Items.Add(new ToolStripMenuItem("查看用量详情", null, delegate { ShowDetails(); }));
+            menu.Items.Add(detailsItem);
             menu.Items.Add(refreshItem);
+            menu.Items.Add(appearanceItem);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripMenuItem("退出", null, delegate { ExitThread(); }));
+            menu.Items.Add(exitItem);
+            ApplyMenuTheme(menu);
             menu.Opening += delegate { visibilityItem.Text = widgetEnabled ? UiText.T("隐藏额度条", "Hide widget") : UiText.T("显示额度条", "Show widget"); refreshItem.Enabled = !busy; };
             widget.ContextMenuStrip = menu;
             menu.Closed += delegate { QueueTaskbarUpdate(); };
@@ -189,9 +204,12 @@ namespace CodexQuotaLite
 
         private void ApplySettings()
         {
+            bool themeChanged = settings.ThemeMode != details.SelectedThemeMode;
             settings.ScalePercent = 100;
             settings.Language = details.SelectedLanguage;
+            settings.ThemeMode = details.SelectedThemeMode;
             UiText.Language = settings.Language;
+            if (themeChanged) ApplyAppearance();
             if (details.SelectedWindowId != null) settings.SelectedWindowId = details.SelectedWindowId;
             widget.TopMost = true;
             details.TopMost = false;
@@ -199,6 +217,36 @@ namespace CodexQuotaLite
             UpdateTaskbar();
             SaveSettings();
             if (details.Visible) details.ShowAnchored(widget);
+        }
+
+        private void ChangeTheme(string mode)
+        {
+            if (stopping || settings.ThemeMode == mode) return;
+            details.SetTheme(mode);
+            ApplySettings();
+        }
+
+        private void ApplyAppearance()
+        {
+            widget.ApplyTheme();
+            ApplyMenuTheme(menu);
+            Icon next = Theme.CreateIcon();
+            try { tray.Icon = next; }
+            catch { next.Dispose(); throw; }
+            Icon previous = trayIcon; trayIcon = next; previous.Dispose();
+        }
+
+        private void ApplyMenuTheme(ToolStrip strip)
+        {
+            strip.BackColor = Theme.Card; strip.ForeColor = Theme.Text;
+            strip.Renderer = menu.Renderer;
+            foreach (ToolStripItem item in strip.Items)
+            {
+                item.BackColor = Theme.Card; item.ForeColor = Theme.Text;
+                var choice = item as ToolStripMenuItem;
+                if (choice != null && choice.HasDropDownItems) ApplyMenuTheme(choice.DropDown);
+            }
+            strip.Invalidate();
         }
 
         private void SaveSettings()
@@ -262,10 +310,15 @@ namespace CodexQuotaLite
         private void Render()
         {
             if (stopping) return;
-            menu.Items[0].Text = widgetEnabled ? UiText.T("隐藏额度条", "Hide widget") : UiText.T("显示额度条", "Show widget");
-            menu.Items[1].Text = UiText.T("查看用量详情", "Usage details");
-            menu.Items[2].Text = UiText.T("立即刷新", "Refresh");
-            menu.Items[4].Text = UiText.T("退出", "Exit");
+            visibilityItem.Text = widgetEnabled ? UiText.T("隐藏额度条", "Hide widget") : UiText.T("显示额度条", "Show widget");
+            detailsItem.Text = UiText.T("查看用量详情", "Usage details");
+            refreshItem.Text = UiText.T("立即刷新", "Refresh");
+            appearanceItem.Text = UiText.T("外观", "Appearance");
+            darkThemeItem.Text = UiText.T("深色模式", "Dark mode");
+            lightThemeItem.Text = UiText.T("浅色模式", "Light mode");
+            darkThemeItem.Checked = settings.ThemeMode == "dark";
+            lightThemeItem.Checked = settings.ThemeMode == "light";
+            exitItem.Text = UiText.T("退出", "Exit");
             QuotaWindow selected = SelectedWindow();
             bool stale = snapshot != null && (!String.IsNullOrEmpty(error) || DateTimeOffset.UtcNow - snapshot.FetchedAtUtc > TimeSpan.FromMinutes(10));
             string combined = !String.IsNullOrEmpty(settingsError) ? settingsError : error;

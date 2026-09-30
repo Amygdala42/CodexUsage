@@ -50,6 +50,13 @@ namespace CodexQuotaLite
             AccessibleRole = AccessibleRole.ComboBox;
         }
 
+        internal void ApplyTheme()
+        {
+            CloseDropDown();
+            BackColor = Theme.Card; ForeColor = Theme.Text;
+            Invalidate();
+        }
+
         private void ItemsChanged()
         {
             if (SelectedIndex >= Items.Count) SelectedIndex = Items.Count - 1;

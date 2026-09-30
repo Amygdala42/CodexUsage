@@ -17,6 +17,7 @@ For Windows x64.
 - Refreshes automatically every five minutes, with manual refresh available.
 - Shows the latest public reset announcement and its type, with a separate Source link. Announcements do not confirm an individual account reset.
 - Saves your Chinese / English preference; fixed 100% app sizing follows Windows system DPI.
+- Switches instantly between dark and light modes and remembers the choice; existing settings default to dark.
 
 ## Examples
 
@@ -39,13 +40,15 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 
 Hover for a quick summary; move away or click to dismiss it. Right-click for the menu. The detail header shows the version and a link to the GitHub project.
 
+Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. The widget, details, dropdown, tooltip and tray icon update without a restart; the next launch restores your choice.
+
 To update, exit the old version from the tray, then replace the EXE. Settings live in `%LOCALAPPDATA%\CodexUsage`; existing settings beside the EXE are imported on first run.
 
 See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current source is **1.0.4 (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, and keeping the usage selector open during refresh. See [TESTING](docs/TESTING.md) for verification scope.
+The current source is **1.0.4 with dark/light mode switching (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, and keeping the usage selector open during refresh. See [TESTING](docs/TESTING.md) for verification scope.
 
 ```powershell
 ./scripts/build.ps1

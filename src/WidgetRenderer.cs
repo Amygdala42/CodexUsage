@@ -11,9 +11,9 @@ namespace CodexQuotaLite
     {
         internal const int LogicalWidth = 86, LogicalHeight = 40;
         internal const float ValueFontSize = 14;
-        internal static readonly Color Surface = Color.FromArgb(24, 31, 39);
-        internal static readonly Color QuotaColor = Color.FromArgb(58, 190, 215);
-        internal static readonly Color TimeColor = Color.FromArgb(51, 154, 197);
+        internal static Color Surface { get { return Theme.WidgetSurface; } }
+        internal static Color QuotaColor { get { return Theme.WidgetQuotaColor; } }
+        internal static Color TimeColor { get { return Theme.WidgetTimeColor; } }
 
         internal static string CompactTime(QuotaWindow window, DateTimeOffset now)
         {
@@ -37,7 +37,7 @@ namespace CodexQuotaLite
                 float scale = size.Height / (float)LogicalHeight * samples;
                 g.ScaleTransform(scale, scale);
                 float width = size.Width * samples / scale;
-                Theme.Rounded(g, new RectangleF(.5f, .5f, width - 1, LogicalHeight - 1), 8, Surface, Color.FromArgb(66, 77, 86));
+                Theme.Rounded(g, new RectangleF(.5f, .5f, width - 1, LogicalHeight - 1), 8, Surface, Theme.WidgetBorder);
                 bool pending = window != null && window.IsResetPending(now);
                 DrawDisk(g, new RectangleF(7, 3, 14, 14), pending || window == null ? null : window.RemainingPercent, stale || pending ? Theme.Muted : QuotaColor);
                 DrawDisk(g, new RectangleF(7, 23, 14, 14), window == null ? null : window.GetTimeRemainingPercent(now), stale ? Theme.Muted : TimeColor);

@@ -30,6 +30,9 @@ internal static class DomainTests
         Run("缺失或损坏的设置返回默认值", MissingAndCorruptSettingsReturnDefaults);
         Run("设置保存后会清理和规范化值", SettingsRoundTripSanitizesValues);
         Run("旧尺寸恢复100且语言偏好可保存", LegacyScaleAndLanguagePreference);
+        Run("新设置与旧设置默认使用深色主题", ThemeDefaultsToDark);
+        Run("主题仅接受深色浅色且保存载入均规范化", ThemeValuesAreNormalized);
+        Run("切换主题往返保存不改变其他用户偏好", ThemeRoundTripPreservesOtherPreferences);
         Run("设置替换失败时保留原文件", FailedAtomicSavePreservesExistingFile);
         Run("应用数据路径支持空格与非英文名称", PortablePathsSupportSpacesAndUnicode);
         Run("移动EXE后沿用同一用户设置", PortablePathsIgnoreAncestorWorkspace);
@@ -644,6 +647,90 @@ internal static class DomainTests
             Equal("zh", (string)language.GetValue(value, null), "非法语言回退中文");
         }
         finally { Directory.Delete(dir, true); }
+    }
+
+    private static void ThemeDefaultsToDark()
+    {
+        PropertyInfo theme = ThemeModeProperty();
+        Equal("dark", (string)theme.GetValue(new AppSettings(), null), "新设置默认深色");
+        string dir = CreateTestDirectory();
+        try
+        {
+            string file = Path.Combine(dir, "settings.json");
+            Equal("dark", (string)theme.GetValue(new SettingsStore(file).Load(), null), "缺失文件默认深色");
+            File.WriteAllText(file, "broken json");
+            Equal("dark", (string)theme.GetValue(new SettingsStore(file).Load(), null), "损坏文件默认深色");
+            File.WriteAllText(file, "{\"Language\":\"en\",\"SelectedWindowId\":\"codex:secondary\"}");
+            AppSettings legacy = new SettingsStore(file).Load();
+            Equal("dark", (string)theme.GetValue(legacy, null), "旧设置缺少主题字段时默认深色");
+            Equal("en", legacy.Language, "旧语言偏好保留");
+            Equal("codex:secondary", legacy.SelectedWindowId, "旧窗口偏好保留");
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    private static void ThemeValuesAreNormalized()
+    {
+        PropertyInfo theme = ThemeModeProperty();
+        string[] values = { null, "", " ", "system", "LIGHT", "Dark", " light ", "dark", "light" };
+        string[] expected = { "dark", "dark", "dark", "dark", "dark", "dark", "dark", "dark", "light" };
+        string dir = CreateTestDirectory();
+        try
+        {
+            string file = Path.Combine(dir, "settings.json");
+            var json = new System.Web.Script.Serialization.JavaScriptSerializer();
+            for (int i = 0; i < values.Length; i++)
+            {
+                File.WriteAllText(file, json.Serialize(new { ThemeMode = values[i] }));
+                Equal(expected[i], (string)theme.GetValue(new SettingsStore(file).Load(), null), "载入主题：" + values[i]);
+                var input = new AppSettings();
+                theme.SetValue(input, values[i], null);
+                True(new SettingsStore(file).Save(input), "主题保存成功");
+                var stored = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(file));
+                Equal(expected[i], (string)stored["ThemeMode"], "磁盘保存的主题已规范化：" + values[i]);
+                Equal(expected[i], (string)theme.GetValue(new SettingsStore(file).Load(), null), "重载主题：" + values[i]);
+            }
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    private static void ThemeRoundTripPreservesOtherPreferences()
+    {
+        PropertyInfo theme = ThemeModeProperty();
+        string dir = CreateTestDirectory();
+        try
+        {
+            string file = Path.Combine(dir, "settings.json");
+            var preferences = new AppSettings {
+                AlwaysOnTop = false, ScalePercent = 100, Language = "en",
+                SelectedWindowId = "codex:secondary", X = -120, Y = 456,
+                DockToTaskbar = false, TaskbarX = 77
+            };
+            foreach (string mode in new[] { "light", "dark", "light" })
+            {
+                theme.SetValue(preferences, mode, null);
+                True(new SettingsStore(file).Save(preferences), "切换主题保存成功");
+                preferences = new SettingsStore(file).Load();
+                Equal(mode, (string)theme.GetValue(preferences, null), "主题偏好往返保存");
+                False(preferences.AlwaysOnTop, "主题不改变置顶偏好");
+                Equal(100, preferences.ScalePercent, "主题不改变尺寸");
+                Equal("en", preferences.Language, "主题不改变语言");
+                Equal("codex:secondary", preferences.SelectedWindowId, "主题不改变额度窗口");
+                Equal(-120, preferences.X.Value, "主题不改变 X");
+                Equal(456, preferences.Y.Value, "主题不改变 Y");
+                False(preferences.DockToTaskbar, "主题不改变停靠偏好");
+                Equal(77, preferences.TaskbarX.Value, "主题不改变任务栏位置");
+            }
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    private static PropertyInfo ThemeModeProperty()
+    {
+        PropertyInfo theme = typeof(AppSettings).GetProperty("ThemeMode");
+        True(theme != null && theme.PropertyType == typeof(string) && theme.CanRead && theme.CanWrite,
+            "AppSettings 需要可读写的公共字符串 ThemeMode");
+        return theme;
     }
 
     private static void FailedAtomicSavePreservesExistingFile()

@@ -2,6 +2,10 @@
 
 ## 1.0.4（未发布 / Unreleased）
 
+本版继续使用 1.0.4 版本号，并加入深色／浅色模式切换。主题选择经真实设置文件保存/加载测试；配色、图标和额度条经纯位图渲染验证，不创建 Form、Control 或托盘窗口，不等同于交互式 GUI 验收。
+
+The version remains 1.0.4 with dark/light mode switching. Theme preference checks use real settings-file saves and loads. Palette, glyph and widget checks render only bitmaps: they do not create Forms, Controls or tray windows, and are not interactive GUI acceptance tests.
+
 本版新增公告 HTTP 离线回归，并加强通信首字节及错误阶段断言。非 GUI 测试覆盖输入编码、子进程取消/超时、公告 304、缓存策略、重试日期及取消后恢复。测试使用合成账号和仅监听本机的 HTTP 服务；不会登录、退出或修改真实账号。
 
 This update adds offline announcement HTTP regressions and checks protocol bytes and error stages. Non-GUI tests cover encoding, child-process cancellation/timeouts, 304 responses, cache policy, retry dates and recovery after cancellation. Fixtures use synthetic accounts and a loopback-only HTTP server; tests do not sign in, sign out or modify a real account.
@@ -35,15 +39,16 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite Domain
 ./scripts/test.ps1 -Suite Bridge
 ./scripts/test.ps1 -Suite ResetFeed
+./scripts/test.ps1 -Suite Theme
 ./scripts/test.ps1 -Suite All
 
 # 只编译 / Compile only
 ./scripts/test.ps1 -Suite All -BuildOnly
 ```
 
-`All` 包含 Domain、Bridge 和 ResetFeed。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。
+`All` 包含 Domain、Bridge、ResetFeed 和 Theme。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`。
 
-`All` runs Domain, Bridge and ResetFeed. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals.
+`All` runs Domain, Bridge, ResetFeed and Theme. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`.
 
 脚本需在本机策略允许的 PowerShell 中运行。若系统明确拒绝脚本或测试程序，停止该入口并记录错误，不通过更改策略、改名或换宿主绕过。2026-09-30 本机 PowerShell 7.6.5 可运行原测试入口；Windows PowerShell 5.1 的脚本入口被执行策略拒绝，该环境未完成运行验证。
 
@@ -56,10 +61,21 @@ Use a PowerShell installation in which local policy permits these scripts. If a 
 | Domain | 额度与套餐解析、百分比与重置计算、异常值、安全错误、设置保存与恢复、固定尺寸、语言及运行数据路径 |
 | Bridge | 模拟服务握手、通知与响应、安全错误、超时、取消、异常退出及子进程清理 |
 | ResetFeed | 本机 HTTP 服务、304、ETag、缓存策略、秒数/日期重试、坏响应、取消、超时及原子缓存 |
+| Theme | 深浅切换与恢复、额度条/图标真实像素、100/150/200% 绘图比例、透明圆角、文字对比度、双语状态及额度数据不变 |
 
 Domain covers parsing, calculations, settings, and runtime data paths. Bridge launches a fake server to exercise protocol and process handling. ResetFeed uses a loopback server to test the production HTTP and cache implementation without external service dependencies.
 
+Domain additionally checks old/invalid theme preferences and light/dark persistence without changing other settings. Theme checks real bitmap output and semantic text contrast in both palettes. Its 100/150/200% image scaling checks do not establish native Windows DPI, menu or window-layout behavior.
+
 ## 结果 / Results
+
+2026-09-30 主题版（版本仍为 1.0.4）：最终构建通过；All 为 Domain 37/37、Bridge 14/14、ResetFeed 46/46、Theme 21/21，共 118 项、0 失败。新增主题设置检查先出现 3 项失败，修复后通过；最终主题位图套件对旧版为 12 通过、9 失败，对新版为 21 通过。恢复深色后额度条及图标 PNG 与旧版逐字节一致。所测正文/语义颜色组合的最低对比度为深色 5.20:1、浅色 4.81:1。
+
+独立代码审查覆盖两种入口、菜单状态、已有控件重着色、主题持久化与托盘图标释放；审查中发现并修正了自绘提示框默认单行绘制导致原有换行丢失的问题，随后最终构建通过。本轮没有运行原生窗口、菜单或提示框交互测试；下面的真实服务记录来自此前修复版，不能当作主题版 GUI 验收。
+
+The 2026-09-30 theme build retains version 1.0.4. The final build succeeded and All passed Domain 37/37, Bridge 14/14, ResetFeed 46/46 and Theme 21/21: 118 checks, zero failures. The three new preference checks failed before implementation. The final bitmap suite produced 12 passes and 9 failures on the old renderer, then 21 passes on the new one. Restoring dark mode reproduces the original widget and glyph PNG bytes. The minimum tested semantic text contrast is 5.20:1 in dark mode and 4.81:1 in light mode.
+
+Independent review covered both entry points, menu state, existing-control recoloring, persistence and tray-icon disposal. It caught and resolved a single-line drawing default that would discard the tooltip's existing line break, followed by a successful final build. Native window, menu and tooltip interaction were not executed. The live-service evidence below belongs to the earlier repair build and is not GUI acceptance of the theme build.
 
 2026-09-30：1.0.4 修复版在 Windows x64、.NET Framework 4.8、PowerShell 7.6.5 上编译通过（C# 5，警告视为错误）。`-Suite All` 最终运行 Domain 34/34、Bridge 14/14、ResetFeed 46/46，共 94 项，0 失败。修复前强化的 Bridge 检查为 2 通过、10 失败，公告检查为 30 通过、16 失败；修复后全部通过，Bridge 另补充了启动失败恢复与并发启动两项。
 

@@ -2,6 +2,8 @@
 
 ## 1.0.4 — Unreleased
 
+- 新增深色／浅色模式切换：详情页按钮与右键“外观”菜单均可操作，立即更新配色并保存偏好；旧配置默认深色，版本继续保持 1.0.4。
+  Add instant dark/light mode switching from the details button or Appearance menu, with a saved preference and dark defaults for existing settings; keep version 1.0.4.
 - 固定 Codex 通信输入编码，避免宿主的 UTF-8 BOM 导致握手失败；加强协议错误测试，防止提前断线被误判为通过。
   Make Codex input independent of the host's UTF-8 BOM and ensure protocol tests reach the intended error branch.
 - 正确处理公共公告 304 缓存响应、日期形式的重试间隔和取消；修复缓存头大小写/引号解析及坏响应提前延长缓存的问题，新增离线 HTTP 回归套件。

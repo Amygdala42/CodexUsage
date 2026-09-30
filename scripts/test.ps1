@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'All')][string]$Suite = 'Domain',
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'All')][string]$Suite = 'Domain',
     [switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -16,9 +16,9 @@ if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $previousTemp = $env:TEMP
 $previousTmp = $env:TMP
-function Build-Check([string]$Name, [string[]]$Inputs) {
+function Build-Check([string]$Name, [string[]]$Inputs, [string[]]$References = @()) {
     $destination = Join-Path $outputRoot ($Name + '.exe')
-    & $compiler /nologo /codepage:65001 /langversion:5 /warnaserror+ /target:exe /platform:x64 "/out:$destination" /r:System.Web.Extensions.dll @Inputs
+    & $compiler /nologo /codepage:65001 /langversion:5 /warnaserror+ /target:exe /platform:x64 "/out:$destination" /r:System.Web.Extensions.dll @References @Inputs
     if ($LASTEXITCODE -ne 0) { throw ('Test compilation failed: ' + $Name) }
     return $destination
 }
@@ -47,6 +47,14 @@ try {
         if (-not $BuildOnly) {
             & $resetFeed
             if ($LASTEXITCODE -ne 0) { throw ('Reset feed checks failed with exit code ' + $LASTEXITCODE) }
+        }
+    }
+    if ($Suite -eq 'Theme' -or $Suite -eq 'All') {
+        $inputs = @('Theme.cs','WidgetRenderer.cs','QuotaModels.cs','UiText.cs') | ForEach-Object { Join-Path $sourceRoot $_ }
+        $theme = Build-Check 'ThemeTests' (@((Join-Path $testRoot 'ThemeTests.cs')) + $inputs) @('/r:System.Drawing.dll','/r:System.Windows.Forms.dll')
+        if (-not $BuildOnly) {
+            & $theme (Join-Path $outputRoot 'theme-render')
+            if ($LASTEXITCODE -ne 0) { throw ('Theme checks failed with exit code ' + $LASTEXITCODE) }
         }
     }
     if ($BuildOnly) { Write-Output 'Test compilation completed. No tests were executed.' }

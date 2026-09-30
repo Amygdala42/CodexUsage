@@ -30,6 +30,15 @@ namespace CodexQuotaLite
             DoubleBuffered = true;
             KeyPreview = true;
             Cursor = Cursors.Hand;
+            tip.OwnerDraw = true;
+            tip.BackColor = Theme.Card; tip.ForeColor = Theme.Text;
+            tip.Draw += delegate(object sender, DrawToolTipEventArgs e) {
+                e.DrawBackground();
+                using (Pen border = new Pen(Theme.Border))
+                    e.Graphics.DrawRectangle(border, 0, 0, e.Bounds.Width - 1, e.Bounds.Height - 1);
+                // Keep the explicit help-line break in hintText when owner-drawing.
+                e.DrawText(TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+            };
             tip.ShowAlways = true;
             tip.InitialDelay = 300;
             tip.ReshowDelay = 300;
@@ -50,6 +59,13 @@ namespace CodexQuotaLite
         {
             using (Graphics g = CreateGraphics()) scale = g.DpiX / 96f * percent / 100f;
             ApplyDimensions();
+        }
+        internal void ApplyTheme()
+        {
+            DismissHint();
+            BackColor = WidgetRenderer.Surface;
+            tip.BackColor = Theme.Card; tip.ForeColor = Theme.Text;
+            Invalidate(); Present();
         }
         public void ApplyTaskbarScale(int percent, Rectangle taskbar)
         {
