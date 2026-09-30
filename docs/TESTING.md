@@ -81,6 +81,10 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-09-30 浅色蓝色样修订（仍为 1.0.4）：从用户两张色样读取到 #7BBDFF / #1C8DFF，仅用于浅色模式的额度/时间饼图；浅色倒计时文字使用 #2056AA。深色配色、各背景、边框和尺寸不变。构建与 All 通过 **263 项、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20）。更新后的主题断言在修改前为 23 通过/2 失败，修改后为 25/25；深色浮条和图标 PNG 与上一份绿色构建逐字节一致。最低语义文字对比度仍为深色 6.24:1、浅色 4.81:1。已查看实际位图预览；未执行本构建的原生 GUI 交互。
+
+The 2026-09-30 light-mode swatch revision retains version 1.0.4. The supplied images were sampled as #7BBDFF / #1C8DFF for the light quota/time disks, with #2056AA countdown text. Dark colours, backgrounds, borders and geometry are unchanged. Build and All passed **263 checks, zero failures** (Domain 37, Bridge 14, ResetFeed 46, Theme 25, Layout 121, Stacking 20). Updated theme assertions first produced 23 passes and 2 failures, then passed 25/25. Dark widget and glyph PNGs are byte-for-byte identical to the preceding green build. Minimum semantic text contrast remains 6.24:1 dark and 4.81:1 light. Rendered bitmaps were inspected; native GUI interaction with this build was not executed.
+
 2026-09-30 浅绿配色修订（仍为 1.0.4）：两个饼图改为 #6CCF91 与更浅的 #A8E5BC，背景、边框和布局保持不变。浅色模式倒计时文字单独使用 #246D40，避免浅绿文字在灰色背景上难以辨认。最终构建通过；All 共 **263 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20）。更新后的主题断言先为 22 通过/3 失败，配色修改后为 25/25；所测语义文字最低对比度为深色 6.24:1、浅色 4.81:1。已检查实际渲染位图；本轮未启动绿色构建的原生 GUI。
 
 另对用户已启动的上一份 1626483 层级修复程序做 20 秒只读采样：636 次中浮条均可见且处于任务栏上方，位置尺寸稳定，未采到此前的周期性遮挡。这是上一份程序的窗口元数据观测，不代表绿色构建或所有原生交互已验收。

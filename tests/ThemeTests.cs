@@ -98,14 +98,21 @@ internal static class ThemeTests
         }
         foreach (string selectedMode in new[] { "dark", "light" }) {
             string mode = selectedMode;
-            Run(mode + " widget and glyph use light green and lighter green disks", delegate {
+            Run(mode + " widget and glyph use the selected disk colours", delegate {
                 SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
                 using (Bitmap widget = Render(2, full, false, false, ""))
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
-                    foreach (Color pixel in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46) })
-                        Check(pixel.G - pixel.R >= 40 && pixel.G - pixel.B >= 25, "rendered quota and time disks are green");
-                    Check(Luminance(time) - Luminance(quota) >= .15, "time disk is a visibly lighter green than the quota disk");
+                    if (mode == "dark") {
+                        foreach (Color pixel in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46) })
+                            Check(pixel.G - pixel.R >= 40 && pixel.G - pixel.B >= 25, "dark quota and time disks remain green");
+                        Check(Luminance(time) - Luminance(quota) >= .15, "dark time disk remains a lighter green");
+                    } else {
+                        foreach (Color pixel in new[] { quota, glyph.GetPixel(36, 18) })
+                            Check(ColorDistance(pixel, Color.FromArgb(123, 189, 255)) < 5, "light quota disk matches the first supplied swatch");
+                        foreach (Color pixel in new[] { time, glyph.GetPixel(36, 46) })
+                            Check(ColorDistance(pixel, Color.FromArgb(28, 141, 255)) < 5, "light time disk matches the second supplied swatch");
+                    }
                 }
             });
             Run(mode + " semantic text meets 4.5:1 contrast on its actual surfaces", delegate {
@@ -140,12 +147,12 @@ internal static class ThemeTests
                 });
             }
         }
-        Run("green disk colours stay consistent while the widget border follows the theme", delegate {
+        Run("disk colours and widget border follow the selected theme", delegate {
             QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
             SetMode("dark"); using (Bitmap dark = Render(2, full, false, false, "")) {
                 SetMode("light"); using (Bitmap light = Render(2, full, false, false, "")) {
-                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) < 5, "quota disk keeps the same light green in both themes");
-                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) < 5, "time disk keeps the same lighter green in both themes");
+                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) > 100, "quota disk switches between green and blue");
+                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) > 100, "time disk switches between green and blue");
                     Check(ColorDistance(dark.GetPixel(1, 40), light.GetPixel(1, 40)) > 150, "widget outline switches its actual stroke colour");
                 }
             }
