@@ -2,8 +2,10 @@
 
 ## 1.0.4 本地配色修订 / Local palette revision — Unreleased
 
-- 统一本地深浅模式配色：深色为深蓝灰底与更鲜明的双蓝（#3E86E3 / #5294F0），浅色为柔和浅灰底与双绿（#388353 / #47875E）；额度数字、饼图、倒计时、进度条与菜单在各自主题中保持同一色系，文字使用更易读的同系色阶，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
-  Unify dark/light palettes: dark slate surfaces with richer blues (#3E86E3 / #5294F0), and gentle gray surfaces with greens (#388353 / #47875E). Quota values, disks, countdowns, progress bars and menus share a colour family within each theme, with readable text shades and separate amber warnings. Add an accent outline to active dropdown rows and verify text/graphic contrast; layout, functionality and version are unchanged.
+- 加大同一主题中两枚饼图的明暗差距：深色两蓝明暗比约 1.72:1，浅色两绿约 1.64:1；背景与文字不变，进度条随额度饼图主色更新。
+  Increase separation between the two disks within each theme: lightness ratios are about 1.72:1 for dark blues and 1.64:1 for light greens. Backgrounds and text are unchanged; progress bars follow the quota disk accent.
+- 统一本地深浅模式配色：深色为深蓝灰底与更鲜明的双蓝（#3E86E3 / #86B4F2），浅色为柔和浅灰底与双绿（#25663B / #4B885F）；额度数字、饼图、倒计时、进度条与菜单在各自主题中保持同一色系，文字使用更易读的同系色阶，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
+  Unify dark/light palettes: dark slate surfaces with richer blues (#3E86E3 / #86B4F2), and gentle gray surfaces with greens (#25663B / #4B885F). Quota values, disks, countdowns, progress bars and menus share a colour family within each theme, with readable text shades and separate amber warnings. Add an accent outline to active dropdown rows and verify text/graphic contrast; layout, functionality and version are unchanged.
 
 ## 1.0.4 — 2026-09-30
 

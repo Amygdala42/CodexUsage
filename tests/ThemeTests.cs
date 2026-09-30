@@ -106,7 +106,11 @@ internal static class ThemeTests
                     float minimumHue = mode == "dark" ? 205 : 135, maximumHue = mode == "dark" ? 225 : 155;
                     foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
                         Check(accent.GetHue() >= minimumHue && accent.GetHue() <= maximumHue, "normal highlights stay blue in dark mode and green in light mode");
-                    Check(ColorDistance(quota, time) >= 20, "quota and time keep subtly distinct shades");
+                    Check(ColorDistance(quota, time) >= 100, "quota and time keep clearly distinct shades");
+                    double quotaLight = Luminance(quota), timeLight = Luminance(time);
+                    double pairContrast = (Math.Max(quotaLight, timeLight) + .05) / (Math.Min(quotaLight, timeLight) + .05);
+                    Check(pairContrast >= 1.5, "quota and time need a visible lightness difference");
+                    Console.WriteLine("PAIR " + mode + " contrast=" + pairContrast.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
                 }
             });
             Run(mode + " rendered disks and progress fills have 3:1 contrast against their track and surfaces", delegate {
