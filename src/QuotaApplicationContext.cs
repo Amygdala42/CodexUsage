@@ -45,6 +45,7 @@ namespace CodexQuotaLite
         private int appliedTaskbarScale;
         private bool initialized;
         private ForegroundMonitor foregroundMonitor;
+        private TaskbarStackingQueue stackingQueue;
         private bool taskbarUpdateQueued;
 
         public QuotaApplicationContext(IQuotaSource quotaSource, SettingsStore settingsStore, AppSettings appSettings, Action<Rectangle, Rectangle, Rectangle> observePlacement = null)
@@ -126,7 +127,9 @@ namespace CodexQuotaLite
             Render();
             widget.Show();
             initialized = true;
-            foregroundMonitor = new ForegroundMonitor(QueueTaskbarUpdate);
+            stackingQueue = new TaskbarStackingQueue(CanRepairTaskbarStacking,
+                delegate(Action repair) { widget.BeginInvoke((MethodInvoker)delegate { repair(); }); }, RepairTaskbarStacking);
+            foregroundMonitor = new ForegroundMonitor(QueueTaskbarUpdate, stackingQueue.Request);
             UpdateTaskbar();
         }
 
@@ -154,6 +157,18 @@ namespace CodexQuotaLite
             widget.Bounds = Theme.Clamp(widget.Bounds, area);
         }
 
+        private bool CanRepairTaskbarStacking()
+        {
+            if (stopping || !initialized || widget.IsDisposed || !widget.IsHandleCreated || !widget.Visible || menu.Visible) return false;
+            // A reorder can arrive before the queued foreground visibility update.
+            return !TaskbarPlacement.ForegroundIsFullscreen(widget.Handle, details.IsHandleCreated ? details.Handle : IntPtr.Zero);
+        }
+
+        private void RepairTaskbarStacking()
+        {
+            if (CanRepairTaskbarStacking()) TaskbarPlacement.KeepAboveTaskbar(widget.Handle);
+        }
+
         private bool UpdateTaskbar()
         {
             if (stopping) return false;
@@ -174,7 +189,7 @@ namespace CodexQuotaLite
             bool show = widgetEnabled && (taskbarVisibility.Observe(visible) || details.Visible) && !TaskbarPlacement.ForegroundIsFullscreen(widget.Handle, details.IsHandleCreated ? details.Handle : IntPtr.Zero);
             if (show && !widget.Visible) widget.Show();
             else if (!show && widget.Visible) { widget.Hide(); details.Hide(); }
-            if (show) TaskbarPlacement.KeepAboveTaskbar(widget.Handle);
+            if (show) RepairTaskbarStacking();
             return true;
         }
 

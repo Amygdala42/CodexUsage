@@ -2,6 +2,8 @@
 
 ## 1.0.4 — Unreleased
 
+- 针对任务栏周期遮挡额度浮条的层级闪烁：监听桌面层级变化，合并排队后仅在任务栏确实位于浮条上方时恢复；保留每秒兜底检查，稳定状态不再反复置顶。
+  Respond to desktop reorder events when the taskbar covers the widget, coalesce checks and raise only when needed; retain the one-second fallback without redundant stable-state raises.
 - 新增深色／浅色模式切换：详情页按钮与右键“外观”菜单均可操作，立即更新配色并保存偏好；旧配置默认深色，版本继续保持 1.0.4。
   Add instant dark/light mode switching from the details button or Appearance menu, with a saved preference and dark defaults for existing settings; keep version 1.0.4.
 - 语言、主题和额度选择合并为同一行；浅色改为柔和的中性浅灰，两个饼图在深浅主题中都使用深浅蓝色。

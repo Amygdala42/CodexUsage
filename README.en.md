@@ -48,7 +48,7 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current source is **1.0.4 with dark/light mode switching (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, and keeping the usage selector open during refresh. See [TESTING](docs/TESTING.md) for verification scope.
+The current source is **1.0.4 with dark/light mode switching (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, keeping the usage selector open during refresh, and responding to taskbar occlusion through desktop reorder events. See [TESTING](docs/TESTING.md) for verification scope.
 
 ```powershell
 ./scripts/build.ps1

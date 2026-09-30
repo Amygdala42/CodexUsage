@@ -20,6 +20,7 @@ namespace CodexQuotaLite
         [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr window);
         [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+        [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, uint command);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder value, int count);
 
         internal static bool TryRead(out Rectangle bounds, out bool visible, out Rectangle notification)
@@ -92,9 +93,17 @@ namespace CodexQuotaLite
 
         internal static void KeepAboveTaskbar(IntPtr window)
         {
-            // Explorer can reorder its own topmost taskbar on interaction.
-            // Preserve our placement without taking keyboard focus.
-            SetWindowPos(window, new IntPtr(-1), 0, 0, 0, 0, 0x0013);
+            if (window == IntPtr.Zero || !IsWindowVisible(window)) return;
+            // Read the current Shell each time. A stable stack needs no native write.
+            TaskbarStacking.Repair(window, delegate {
+                    IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
+                    NativeRect widgetBounds, taskbarBounds;
+                    return taskbar != IntPtr.Zero && IsWindowVisible(taskbar) && IsWindowVisible(window)
+                        && GetWindowRect(window, out widgetBounds) && GetWindowRect(taskbar, out taskbarBounds)
+                        && widgetBounds.Rectangle.IntersectsWith(taskbarBounds.Rectangle) ? taskbar : IntPtr.Zero;
+                },
+                delegate(IntPtr current) { return GetWindow(current, 3); },
+                delegate(IntPtr current) { return SetWindowPos(current, new IntPtr(-1), 0, 0, 0, 0, 0x0013); });
         }
     }
 
@@ -109,31 +118,36 @@ namespace CodexQuotaLite
             WinEventCallback callback, uint process, uint thread, uint flags);
         [DllImport("user32.dll")]
         private static extern bool UnhookWinEvent(IntPtr hook);
-        private IntPtr hook;
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDesktopWindow();
+        private IntPtr foregroundHook, reorderHook;
         private GCHandle callbackRoot;
         private bool disposed;
 
-        internal ForegroundMonitor(Action changed)
+        internal ForegroundMonitor(Action changed, Action desktopReordered)
         {
-            WinEventCallback callback = delegate {
-                if (!disposed) changed();
+            WinEventCallback callback = delegate(IntPtr hook, uint eventType, IntPtr window, int objectId, int childId, uint threadId, uint time) {
+                if (disposed) return;
+                if (eventType == 3) changed();
+                else if (TaskbarStacking.IsDesktopReorder(eventType, window, GetDesktopWindow(), objectId, childId)) desktopReordered();
             };
             callbackRoot = GCHandle.Alloc(callback);
             // EVENT_SYSTEM_FOREGROUND, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS.
-            hook = SetWinEventHook(3, 3, IntPtr.Zero, callback, 0, 0, 2);
-            // If hooks are unavailable, the existing timer remains a fallback.
-            if (hook == IntPtr.Zero) callbackRoot.Free();
+            foregroundHook = SetWinEventHook(3, 3, IntPtr.Zero, callback, 0, 0, 2);
+            // The observed Shell reorder is Desktop / OBJID_CLIENT / CHILDID_SELF.
+            // A separate hook keeps foreground behavior and visibility reads unchanged.
+            reorderHook = SetWinEventHook(0x8004, 0x8004, IntPtr.Zero, callback, 0, 0, 2);
+            // Either hook may fail independently; the one-second timer is the fallback.
+            if (foregroundHook == IntPtr.Zero && reorderHook == IntPtr.Zero) callbackRoot.Free();
         }
 
         public void Dispose()
         {
-            if (disposed) return;
             disposed = true;
-            if (hook != IntPtr.Zero)
-            {
-                if (UnhookWinEvent(hook) && callbackRoot.IsAllocated) callbackRoot.Free();
-                hook = IntPtr.Zero;
-            }
+            if (foregroundHook != IntPtr.Zero && UnhookWinEvent(foregroundHook)) foregroundHook = IntPtr.Zero;
+            if (reorderHook != IntPtr.Zero && UnhookWinEvent(reorderHook)) reorderHook = IntPtr.Zero;
+            // Never release a delegate still reachable from an unsuccessfully removed hook.
+            if (foregroundHook == IntPtr.Zero && reorderHook == IntPtr.Zero && callbackRoot.IsAllocated) callbackRoot.Free();
         }
     }
 }

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'All')][string]$Suite = 'Domain',
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'Stacking', 'All')][string]$Suite = 'Domain',
     [switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -63,6 +63,13 @@ try {
         if (-not $BuildOnly) {
             & $layout (Join-Path $outputRoot 'layout-compact')
             if ($LASTEXITCODE -ne 0) { throw ('Layout checks failed with exit code ' + $LASTEXITCODE) }
+        }
+    }
+    if ($Suite -eq 'Stacking' -or $Suite -eq 'All') {
+        $stacking = Build-Check 'TaskbarStackingTests' @((Join-Path $testRoot 'TaskbarStackingTests.cs'), (Join-Path $sourceRoot 'TaskbarStacking.cs'))
+        if (-not $BuildOnly) {
+            & $stacking
+            if ($LASTEXITCODE -ne 0) { throw ('Taskbar stacking checks failed with exit code ' + $LASTEXITCODE) }
         }
     }
     if ($BuildOnly) { Write-Output 'Test compilation completed. No tests were executed.' }

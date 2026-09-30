@@ -41,15 +41,16 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite ResetFeed
 ./scripts/test.ps1 -Suite Theme
 ./scripts/test.ps1 -Suite Layout
+./scripts/test.ps1 -Suite Stacking
 ./scripts/test.ps1 -Suite All
 
 # 只编译 / Compile only
 ./scripts/test.ps1 -Suite All -BuildOnly
 ```
 
-`All` 包含 Domain、Bridge、ResetFeed、Theme 和 Layout。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`；Layout 将逐项字体测量写入 `env/tests/layout-compact/`。
+`All` 包含 Domain、Bridge、ResetFeed、Theme、Layout 和 Stacking。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`；Layout 将逐项字体测量写入 `env/tests/layout-compact/`。
 
-`All` runs Domain, Bridge, ResetFeed, Theme and Layout. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`; Layout writes individual font measurements to `env/tests/layout-compact/`.
+`All` runs Domain, Bridge, ResetFeed, Theme, Layout and Stacking. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`; Layout writes individual font measurements to `env/tests/layout-compact/`.
 
 脚本需在本机策略允许的 PowerShell 中运行。若系统明确拒绝脚本或测试程序，停止该入口并记录错误，不通过更改策略、改名或换宿主绕过。2026-09-30 本机 PowerShell 7.6.5 可运行原测试入口；Windows PowerShell 5.1 的脚本入口被执行策略拒绝，该环境未完成运行验证。
 
@@ -64,6 +65,7 @@ Use a PowerShell installation in which local policy permits these scripts. If a 
 | ResetFeed | 本机 HTTP 服务、304、ETag、缓存策略、秒数/日期重试、坏响应、取消、超时及原子缓存 |
 | Theme | 深浅切换与恢复、额度条/图标真实像素、100/150/200% 绘图比例、透明圆角、文字对比度、双语状态及额度数据不变 |
 | Layout | Plus/Pro 合成响应经生产解析器生成的标签、共享布局几何、同一行控件无重叠、真实字体宽高、选择器箭头及加宽下拉列表的文字/勾选预留空间 |
+| Stacking | 层级按需修复、桌面事件筛选、排队合并、菜单/隐藏/退出门控，以及失败后重试；测试通过委托隔离原生写操作 |
 
 Domain covers parsing, calculations, settings, and runtime data paths. Bridge launches a fake server to exercise protocol and process handling. ResetFeed uses a loopback server to test the production HTTP and cache implementation without external service dependencies.
 
@@ -73,7 +75,23 @@ Layout 使用实际生产布局与 GDI 字体测量检查 Plus/Pro 中英文文�
 
 Layout uses production geometry and GDI font measurements for Chinese/English Plus and Pro labels, with an extra four logical pixels reserved at each button edge. It does not create native controls or establish live-account, click or Windows DPI acceptance. Unknown long quota labels retain ellipsis; arbitrary labels are not guaranteed to fit in full.
 
+Stacking 使用纯委托测试实际生产的层级决策、事件筛选与队列合并；不创建窗口或调用原生置顶。已有进程的只读窗口状态与事件采样是独立现场证据，不等同于修复后视觉验收。
+
+Stacking tests production ordering decisions, event filtering and queue coalescing with delegates; it creates no windows and performs no native raises. Read-only observation of the existing process is separate live evidence, not post-fix visual acceptance.
+
 ## 结果 / Results
+
+2026-09-30 浮条层级闪烁修订（仍为 1.0.4）：最终构建通过；All 为 Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20，共 **263 项通过、0 失败**。Stacking 对旧的无条件置顶行为为 1 通过/11 失败，事件过滤与排队中间版本为 14 通过/6 失败，最终 20/20；稳定状态连续 100 次检查由 100 次原生写入降为零。
+
+对用户正在运行的上一份 763834c 程序做只读采样：637 次中可见标志、置顶标志和位置尺寸均稳定，相对任务栏却每秒交替落到下方；20 个完整下方区间估计为 313–378ms，中位数 345ms。另一次关联记录中，20 条 Desktop/OBJID_CLIENT(-4)/CHILDID_SELF(0) 重排事件对应 10 次下方和 10 次上方状态。这些是离散窗口元数据，不是逐帧屏幕测量。
+
+最终 EXE 内的生产 ForegroundMonitor 和 TaskbarStacking.Repair 还进行了 10 秒被动监听验证：20 次实际桌面回调，10 次下方判为需要恢复、10 次上方判为无需写入。恢复委托仅计数，实际原生写入为零；未创建 Form、Control、托盘或替换用户运行程序。本轮修复后的视觉效果、菜单与全屏交互、Explorer 重启仍需切换新版后验收，不能用纯逻辑及被动观测代替。
+
+The 2026-09-30 stacking revision remains version 1.0.4. Build and All passed **263 checks, zero failures**: Domain 37, Bridge 14, ResetFeed 46, Theme 25, Layout 121 and Stacking 20. The original unconditional-raise seam failed 11 of 12 checks; the intermediate event/queue implementation failed 6 of 20; the final suite passes 20/20. One hundred stable checks now issue zero writes instead of 100.
+
+Read-only observation of the prior 763834c process found stable visibility, topmost flags and bounds across 637 samples, but recurring relative taskbar occlusion. Twenty complete below-taskbar intervals were estimated at 313–378ms (median 345ms). A separate correlated log recorded 20 Desktop/OBJID_CLIENT/CHILDID_SELF reorder notifications, alternating between below and above. These are sampled window metadata, not frame-level visual measurements.
+
+A passive probe using ForegroundMonitor and TaskbarStacking.Repair from the final executable received 20 actual desktop callbacks in 10 seconds: 10 below-taskbar repair decisions and 10 above-taskbar no-write decisions. Its write delegate only counted intent; native writes were zero. No Form, Control or tray was created and the running user program was not replaced. Post-fix visual behavior, menu/fullscreen interaction and Explorer restart remain pending desktop acceptance after switching builds.
 
 2026-09-30 单行布局与浅灰/双蓝修订（仍为 1.0.4）：最终构建通过；All 为 Domain 37/37、Bridge 14/14、ResetFeed 46/46、Theme 25/25、Layout 121/121，共 **243 项、0 失败**。语言、主题和额度选择同排，详情页高度减少 36 个逻辑像素；下拉列表单独加宽并限制在工作区宽度内。
 
