@@ -104,14 +104,15 @@ internal static class ThemeTests
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
                     if (mode == "dark") {
-                        foreach (Color pixel in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46) })
-                            Check(pixel.G - pixel.R >= 40 && pixel.G - pixel.B >= 25, "dark quota and time disks remain green");
-                        Check(Luminance(time) - Luminance(quota) >= .15, "dark time disk remains a lighter green");
+                        foreach (Color pixel in new[] { quota, glyph.GetPixel(36, 18) })
+                            Check(ColorDistance(pixel, Color.FromArgb(25, 25, 112)) < 5, "dark quota disk is MidnightBlue #191970");
+                        foreach (Color pixel in new[] { time, glyph.GetPixel(36, 46) })
+                            Check(ColorDistance(pixel, Color.FromArgb(0, 71, 171)) < 5, "dark time disk is CobaltBlue #0047AB");
                     } else {
                         foreach (Color pixel in new[] { quota, glyph.GetPixel(36, 18) })
-                            Check(ColorDistance(pixel, Color.FromArgb(123, 189, 255)) < 5, "light quota disk matches the first supplied swatch");
+                            Check(ColorDistance(pixel, Color.FromArgb(30, 144, 255)) < 5, "light quota disk is DodgerBlue #1E90FF");
                         foreach (Color pixel in new[] { time, glyph.GetPixel(36, 46) })
-                            Check(ColorDistance(pixel, Color.FromArgb(28, 141, 255)) < 5, "light time disk matches the second supplied swatch");
+                            Check(ColorDistance(pixel, Color.FromArgb(135, 206, 235)) < 5, "light time disk is SkyBlue #87CEEB");
                     }
                 }
             });
@@ -151,8 +152,8 @@ internal static class ThemeTests
             QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
             SetMode("dark"); using (Bitmap dark = Render(2, full, false, false, "")) {
                 SetMode("light"); using (Bitmap light = Render(2, full, false, false, "")) {
-                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) > 100, "quota disk switches between green and blue");
-                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) > 100, "time disk switches between green and blue");
+                    Check(ColorDistance(dark.GetPixel(28, 20), light.GetPixel(28, 20)) > 50, "quota disk switches between dark and light palettes");
+                    Check(ColorDistance(dark.GetPixel(28, 60), light.GetPixel(28, 60)) > 50, "time disk switches between dark and light palettes");
                     Check(ColorDistance(dark.GetPixel(1, 40), light.GetPixel(1, 40)) > 150, "widget outline switches its actual stroke colour");
                 }
             }
@@ -209,6 +210,8 @@ internal static class ThemeTests
                 Theme.Rounded(graphics, new RectangleF(left + 22, 110, 426, 122), 12, Theme.Card, Theme.Border);
                 PreviewText(graphics, "Weekly quota", left + 38, 125, 17, Theme.Text); PreviewText(graphics, "63% remaining", left + 38, 157, 22, Theme.Aqua);
                 PreviewText(graphics, "Resets in 5d 0h", left + 38, 194, 13, Theme.Blue);
+                Theme.Rounded(graphics, new RectangleF(left + 38, 218, 394, 5), 2.5f, Theme.Border, null);
+                Theme.Rounded(graphics, new RectangleF(left + 38, 218, 394 * .63f, 5), 2.5f, Theme.WidgetTimeColor, null);
                 string[] labels = { "Normal", "Stale", "Error", "Sync" };
                 for (int row = 0; row < 4; row++) {
                     int top = 264 + row * 83; PreviewText(graphics, labels[row], left + 24, top + 19, 15, row == 1 || row == 2 ? Theme.Warning : Theme.Muted);

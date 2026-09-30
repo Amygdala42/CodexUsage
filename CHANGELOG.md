@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 本地配色修订 / Local palette revision — Unreleased
+
+- 任务栏与托盘的额度／时间饼图：深色改为 MidnightBlue #191970／CobaltBlue #0047AB，浅色改为 DodgerBlue #1E90FF／SkyBlue #87CEEB。详情弹窗进度条分别为深色 #0047AB／浅色 #87CEEB。文字、背景、布局、过期提示、功能与版本号不变。
+  Taskbar and tray quota/time disks use MidnightBlue #191970 / CobaltBlue #0047AB in dark mode and DodgerBlue #1E90FF / SkyBlue #87CEEB in light mode. Detail progress bars use #0047AB / #87CEEB respectively. Text, backgrounds, layout, stale-state styling, functionality and version are unchanged.
+
 ## 1.0.4 — 2026-09-30
 
 - 针对任务栏周期遮挡额度浮条的层级闪烁：监听桌面层级变化，合并排队后仅在任务栏确实位于浮条上方时恢复；保留每秒兜底检查，稳定状态不再反复置顶。

@@ -81,6 +81,10 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-09-30 本地四色配色修订（仍为 1.0.4，未替换发行附件）：深色饼图 #191970/#0047AB，浅色 #1E90FF/#87CEEB；详情进度条分别为 #0047AB/#87CEEB。其余文字、背景、布局和原过期状态颜色保持不变。All 263 项通过后，按最终要求保留原倒计时文字色并更新详情进度条，重新构建与 Theme 25/25 检查均通过。最终最低文字对比度为深色 6.24:1、浅色 4.81:1；已检查配色位图，原生 GUI 交互未执行。指定的 MidnightBlue 饼图本身偏暗，文字对比度检查不代表图形对比度达到同一数值。
+
+The local four-colour revision on 2026-09-30 retains version 1.0.4 and has not replaced release assets. Dark disks use #191970/#0047AB; light disks use #1E90FF/#87CEEB. Detail progress bars use #0047AB/#87CEEB. Other text, backgrounds, layout and stale-state colours are unchanged. After All passed 263 checks, the final countdown text was kept unchanged and detail progress fills updated; the final build and Theme 25/25 passed again. Minimum text contrast is 6.24:1 dark and 4.81:1 light. Rendered bitmaps were inspected; native GUI interaction was not executed. The specified MidnightBlue disk is deliberately dark; text contrast results do not describe graphical contrast.
+
 发布前复验：2026-09-30 在最终 v1.0.4 生产源码上重新运行 All，Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20，共 **263 项通过、0 失败**。随后仅整理发布文档、示例图和包内说明，不改动生产代码；发行 EXE 沿用已验证的 1.0.4.0 构建。
 
 Pre-release verification on 2026-09-30 reran All against the final v1.0.4 production source: Domain 37, Bridge 14, ResetFeed 46, Theme 25, Layout 121 and Stacking 20 — **263 checks passed, zero failures**. Subsequent changes only prepare release documentation, illustrations and package notes; production code is unchanged and the release reuses the verified 1.0.4.0 executable.

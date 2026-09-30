@@ -8,6 +8,8 @@ A lightweight Windows widget for Codex quota and reset time, next to the notific
 
 For Windows x64.
 
+Local four-colour revision (still v1.0.4): taskbar and tray disks use MidnightBlue / CobaltBlue in dark mode and DodgerBlue / SkyBlue in light mode. Detail progress bars use CobaltBlue / SkyBlue respectively; text, backgrounds and layout are unchanged. This revision has not replaced the GitHub release assets linked above.
+
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 
 ## Features
@@ -46,7 +48,7 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 
 Hover for a quick summary; move away or click to dismiss it. Right-click for the menu. The detail header shows the version and a link to the GitHub project.
 
-Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. Light mode uses a soft neutral-gray background, with light blue #7BBDFF and blue #1C8DFF quota and time disks. Dark mode retains its light green and lighter green palette. The widget, details, dropdown, tooltip and tray icon update without a restart; the next launch restores your choice.
+Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. The upper quota / lower time disks use MidnightBlue #191970 / CobaltBlue #0047AB in dark mode, and DodgerBlue #1E90FF / SkyBlue #87CEEB in light mode. Detail quota progress bars use #0047AB in dark mode and #87CEEB in light mode; backgrounds, text colours and stale-state colours are unchanged. Theme switching needs no restart; the next launch restores your choice.
 
 To update, exit the old version from the tray, then replace the EXE. Settings live in `%LOCALAPPDATA%\CodexUsage`; existing settings beside the EXE are imported on first run.
 
