@@ -81,6 +81,10 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-09-30 v1.0.4 配色更新发布前复验：在最终双蓝/双绿生产源码上重新运行 All，**265 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 27、Layout 121、Stacking 20）。本次随后仅整理发行文档与程序包说明，复用已验证的 1.0.4.0 EXE，SHA-256 为 `D7E44FC40230ADE214CDCC0AAE39472A5B5F67B9428C93A6AAB3BC97CD4FA8A3`。以下本地修订记录保留为历史验证过程。
+
+The 2026-09-30 v1.0.4 palette-update release check reran All against the final blue/green production source: **265 checks passed, zero failures** (Domain 37, Bridge 14, ResetFeed 46, Theme 27, Layout 121, Stacking 20). Subsequent changes only prepare release documentation and package notes; the release reuses the verified 1.0.4.0 executable with the SHA-256 above. The local revision records below document historical validation steps.
+
 2026-09-30 本地蓝绿配色色差修订（仍为 1.0.4）：深色双蓝为 #3E86E3 / #86B4F2，浅色双绿为 #25663B / #4B885F。加严既有实际像素区分度断言后，上一配色为 25 通过/2 失败，新版 Theme 27 项全过；构建和 All **265 项通过、0 失败**。两填色的明暗比分别从约 1.20/1.08 提升到 1.72/1.64；这是本次视觉区分目标，不是无障碍标准。图形对轨道/背景最低为深色 3.15:1、浅色 3.05:1，语义文字仍为 4.79:1/4.77:1。背景、文字和布局保持不变，进度条随额度主色更新；已检查位图并完成独立源码审查，未执行原生 GUI 交互。
 
 The local blue/green separation revision on 2026-09-30 retains version 1.0.4. Dark disks use #3E86E3 / #86B4F2; light disks use #25663B / #4B885F. Tightened rendered-pixel separation assertions produced 25 passes/2 failures on the previous palette and 27 passes on this palette. The build and All passed **265 checks, zero failures**. Disk-to-disk lightness ratios increased from about 1.20/1.08 to 1.72/1.64; these are design targets, not accessibility standards. Graphical contrast against tracks/surfaces is at least 3.15:1 dark and 3.05:1 light; tested text minima remain 4.79:1/4.77:1. Backgrounds, text and layout are unchanged; progress bars follow the quota accent. Bitmaps and source were reviewed; native GUI interaction was not executed.

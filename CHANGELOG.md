@@ -1,20 +1,18 @@
 # Changelog
 
-## 1.0.4 本地配色修订 / Local palette revision — Unreleased
+## 1.0.4 — 2026-09-30
 
 - 加大同一主题中两枚饼图的明暗差距：深色两蓝明暗比约 1.72:1，浅色两绿约 1.64:1；背景与文字不变，进度条随额度饼图主色更新。
   Increase separation between the two disks within each theme: lightness ratios are about 1.72:1 for dark blues and 1.64:1 for light greens. Backgrounds and text are unchanged; progress bars follow the quota disk accent.
-- 统一本地深浅模式配色：深色为深蓝灰底与更鲜明的双蓝（#3E86E3 / #86B4F2），浅色为柔和浅灰底与双绿（#25663B / #4B885F）；额度数字、饼图、倒计时、进度条与菜单在各自主题中保持同一色系，文字使用更易读的同系色阶，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
+- 统一深浅模式配色：深色为深蓝灰底与更鲜明的双蓝（#3E86E3 / #86B4F2），浅色为柔和浅灰底与双绿（#25663B / #4B885F）；额度数字、饼图、倒计时、进度条与菜单在各自主题中保持同一色系，文字使用更易读的同系色阶，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
   Unify dark/light palettes: dark slate surfaces with richer blues (#3E86E3 / #86B4F2), and gentle gray surfaces with greens (#25663B / #4B885F). Quota values, disks, countdowns, progress bars and menus share a colour family within each theme, with readable text shades and separate amber warnings. Add an accent outline to active dropdown rows and verify text/graphic contrast; layout, functionality and version are unchanged.
-
-## 1.0.4 — 2026-09-30
 
 - 针对任务栏周期遮挡额度浮条的层级闪烁：监听桌面层级变化，合并排队后仅在任务栏确实位于浮条上方时恢复；保留每秒兜底检查，稳定状态不再反复置顶。
   Respond to desktop reorder events when the taskbar covers the widget, coalesce checks and raise only when needed; retain the one-second fallback without redundant stable-state raises.
 - 新增深色／浅色模式切换：详情页按钮与右键“外观”菜单均可操作，立即更新配色并保存偏好；旧配置默认深色。
   Add instant dark/light mode switching from the details button or Appearance menu, with a saved preference and dark defaults for existing settings.
-- 语言、主题和额度选择合并为同一行；浅色使用柔和的中性浅灰背景，两个饼图采用浅蓝 #7BBDFF 与蓝色 #1C8DFF，深色采用浅绿与更浅绿配色。
-  Put language, theme and quota selection on one row. Light mode uses a soft neutral-gray background with #7BBDFF and #1C8DFF blue disks; dark mode uses light green and lighter green disks.
+- 语言、主题和额度选择合并为同一行；浅色使用柔和的中性浅灰背景。
+  Put language, theme and quota selection on one row. Light mode uses a soft neutral-gray background.
 - 固定 Codex 通信输入编码，避免宿主的 UTF-8 BOM 导致握手失败；加强协议错误测试，防止提前断线被误判为通过。
   Make Codex input independent of the host's UTF-8 BOM and ensure protocol tests reach the intended error branch.
 - 正确处理公共公告 304 缓存响应、日期形式的重试间隔和取消；修复缓存头大小写/引号解析及坏响应提前延长缓存的问题，新增离线 HTTP 回归套件。

@@ -8,7 +8,7 @@ A lightweight Windows widget for Codex quota and reset time, next to the notific
 
 For Windows x64.
 
-Local blue/green palette revision (still v1.0.4): dark mode uses dark slate surfaces with richer blue highlights; light mode uses gentle gray surfaces with soft green accents. Disks, quota values, countdowns, progress bars and menus share one colour family within each theme, with text and meaningful graphics checked for contrast. This revision has not replaced the GitHub release assets linked above.
+The v1.0.4 palette: dark mode uses dark slate surfaces with richer blue highlights; light mode uses gentle gray surfaces with soft green accents. Disks, quota values, countdowns, progress bars and menus share one colour family within each theme, with text and meaningful graphics checked for contrast. The two disks have clearly separated light and dark shades.
 
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 
@@ -56,7 +56,7 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current version is **v1.0.4** (2026-09-30), with executable file and assembly versions **1.0.4.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, and recovery from taskbar occlusion on desktop reorder events. The local blue/green palette revision passes all 265 automated checks, including text and graphical contrast. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
+The current version is **v1.0.4** (2026-09-30), with executable file and assembly versions **1.0.4.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, and recovery from taskbar occlusion on desktop reorder events. Version 1.0.4 passes all 265 automated checks, including text and graphical contrast. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
 
 ```powershell
 ./scripts/build.ps1
