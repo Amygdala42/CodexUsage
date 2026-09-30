@@ -98,13 +98,14 @@ internal static class ThemeTests
         }
         foreach (string selectedMode in new[] { "dark", "light" }) {
             string mode = selectedMode;
-            Run(mode + " normal accents and rendered disks share a coherent blue palette", delegate {
+            Run(mode + " normal accents and rendered disks share the requested colour family", delegate {
                 SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
                 using (Bitmap widget = Render(2, full, false, false, ""))
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
+                    float minimumHue = mode == "dark" ? 205 : 135, maximumHue = mode == "dark" ? 225 : 155;
                     foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
-                        Check(accent.GetHue() >= 205 && accent.GetHue() <= 225, "normal highlights stay in the same blue family instead of mixing green and blue");
+                        Check(accent.GetHue() >= minimumHue && accent.GetHue() <= maximumHue, "normal highlights stay blue in dark mode and green in light mode");
                     Check(ColorDistance(quota, time) >= 20, "quota and time keep subtly distinct shades");
                 }
             });
