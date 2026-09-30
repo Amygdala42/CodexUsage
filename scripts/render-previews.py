@@ -11,17 +11,17 @@ from PIL import Image, ImageDraw, ImageFont
 
 SCALE = 4
 OUTPUT_WIDTH = 360
-BG = (16, 23, 36)
-CARD = (25, 35, 51)
-BORDER = (48, 63, 82)
-TEXT = (238, 245, 250)
-MUTED = (150, 169, 188)
-AQUA = (70, 224, 196)
-BLUE = (106, 163, 255)
-WIDGET_BG = (24, 31, 39)
-QUOTA = (25, 25, 112)
-TIME = (0, 71, 171)
-TIME_TEXT = (168, 229, 188)
+BG = (20, 27, 38)
+CARD = (29, 40, 56)
+BORDER = (43, 58, 78)
+TEXT = (230, 237, 245)
+MUTED = (164, 178, 196)
+AQUA = (126, 169, 232)
+BLUE = (173, 200, 238)
+WIDGET_BG = (24, 34, 48)
+QUOTA = (126, 169, 232)
+TIME = (173, 200, 238)
+TIME_TEXT = BLUE
 
 
 class Canvas:
@@ -100,7 +100,7 @@ def render(plan, english, destination, fonts, version):
         canvas.text(label, 32, y + 8, 215, 22, 12, bold=True)
         canvas.text(str(amount) + "%", 253, y + 7, 75, 23, 19, AQUA, True)
         canvas.round(32, y + 37, 296, 5, 2.5, BORDER)
-        canvas.round(32, y + 37, 296 * amount / 100, 5, 2.5, TIME)
+        canvas.round(32, y + 37, 296 * amount / 100, 5, 2.5, QUOTA)
         canvas.text(countdown, 32, y + 49, 170, 17, 9.5, BLUE)
         canvas.text(reset, 204, y + 49, 124, 17, 9.5, MUTED, align="right")
     canvas.text("Latest reset  09-29 16:09  Regular" if english else "最近重置公告  09-29 16:09  即时重置", 20, top + 84 + cards_height + 10, 262, 28, 11, MUTED)
@@ -120,7 +120,7 @@ def render(plan, english, destination, fonts, version):
     canvas.round(268, top + footer_y, 72, 28, 0, CARD, BORDER)
     canvas.text("Refresh" if english else "立即刷新", 268, top + footer_y, 72, 28, 11, align="center")
     icon_y = top + app_height + 12
-    canvas.round(88.5, icon_y + .5, 85, 39, 8, WIDGET_BG, (66, 77, 86))
+    canvas.round(88.5, icon_y + .5, 85, 39, 8, WIDGET_BG, (75, 94, 119))
     canvas.disk(95, icon_y + 3, 14, windows[0][1], QUOTA)
     hours_left, window_hours = (3.7, 5) if plan == "Plus" else (108.0, 168)
     canvas.disk(95, icon_y + 23, 14, hours_left / window_hours * 100, TIME)

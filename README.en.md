@@ -8,7 +8,7 @@ A lightweight Windows widget for Codex quota and reset time, next to the notific
 
 For Windows x64.
 
-Local four-colour revision (still v1.0.4): taskbar and tray disks use MidnightBlue / CobaltBlue in dark mode and DodgerBlue / SkyBlue in light mode. Detail progress bars use CobaltBlue / SkyBlue respectively; text, backgrounds and layout are unchanged. This revision has not replaced the GitHub release assets linked above.
+Local unified-palette revision (still v1.0.4): dark mode uses dark slate surfaces with soft blue highlights; light mode uses gentle gray surfaces with muted blue accents. Disks, quota values, countdowns, progress bars and menus share one blue colour family, with text and meaningful graphics checked for contrast. This revision has not replaced the GitHub release assets linked above.
 
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 
@@ -48,7 +48,7 @@ Requires Windows x64, .NET Framework 4.8 or a newer 4.x version, and Codex insta
 
 Hover for a quick summary; move away or click to dismiss it. Right-click for the menu. The detail header shows the version and a link to the GitHub project.
 
-Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. The upper quota / lower time disks use MidnightBlue #191970 / CobaltBlue #0047AB in dark mode, and DodgerBlue #1E90FF / SkyBlue #87CEEB in light mode. Detail quota progress bars use #0047AB in dark mode and #87CEEB in light mode; backgrounds, text colours and stale-state colours are unchanged. Theme switching needs no restart; the next launch restores your choice.
+Change appearance with the Light mode / Dark mode button in the details view, or right-click the widget or tray icon and choose Appearance → Dark mode / Light mode. Language, theme and quota selection share one row. Dark mode pairs dark slate surfaces with light blue accents; light mode pairs soft gray surfaces with muted blue accents. Quota progress bars and quota disks share the primary accent. Normal states use one blue family; stale states use neutral gray and amber warnings. Active dropdown rows have an accent border. Theme switching needs no restart; the next launch restores your choice.
 
 To update, exit the old version from the tray, then replace the EXE. Settings live in `%LOCALAPPDATA%\CodexUsage`; existing settings beside the EXE are imported on first run.
 
@@ -56,7 +56,7 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current version is **v1.0.4** (2026-09-30), with executable file and assembly versions **1.0.4.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, and recovery from taskbar occlusion on desktop reorder events. All 263 automated checks passed before release. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
+The current version is **v1.0.4** (2026-09-30), with executable file and assembly versions **1.0.4.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, and recovery from taskbar occlusion on desktop reorder events. The local unified-palette revision passes all 265 automated checks, including text and graphical contrast. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
 
 ```powershell
 ./scripts/build.ps1

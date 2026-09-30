@@ -198,7 +198,7 @@ namespace CodexQuotaLite
    Theme.Rounded(g,new RectangleF(.5f,.5f,Width-1,Height-1),11*s,Theme.Card,selected?Theme.Border:(Color?)null);
    Theme.Write(g,UiText.WindowLabel(window.Label),12,8,width-105,22,12,Theme.Text,true,s);Theme.Write(g,pending?UiText.T("待更新","Pending"):Theme.Percent(window.RemainingPercent),width-87,7,75,23,pending?13:19,color,true,s);
    RectangleF track=new RectangleF(12*s,37*s,(width-24)*s,5*s);Theme.Rounded(g,track,2.5f*s,Theme.Border,null);
-   if(!pending&&window.RemainingPercent.HasValue&&window.RemainingPercent.Value>0){track.Width*=(float)(window.RemainingPercent.Value/100);Theme.Rounded(g,track,2.5f*s,stale?Theme.Muted:Theme.WidgetTimeColor,null);}
+   if(!pending&&window.RemainingPercent.HasValue&&window.RemainingPercent.Value>0){track.Width*=(float)(window.RemainingPercent.Value/100);Theme.Rounded(g,track,2.5f*s,stale?Theme.Muted:Theme.WidgetQuotaColor,null);}
    string countdown=stale?UiText.T("上次结果 · 已过期","Previous result · Out of date"):pending?UiText.T("已重置 · 待更新","Reset reached · Pending"):Theme.ResetText(window,now);
    Theme.Write(g,countdown,12,49,width-150,17,9.5f,stale||pending?Theme.Warning:Theme.Blue,false,s);
    string reset=window.ResetsAtUtc.HasValue?window.ResetsAtUtc.Value.ToLocalTime().ToString("MM-dd HH:mm"):UiText.T("重置时间未知","Reset unknown");

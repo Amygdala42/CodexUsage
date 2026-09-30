@@ -98,22 +98,31 @@ internal static class ThemeTests
         }
         foreach (string selectedMode in new[] { "dark", "light" }) {
             string mode = selectedMode;
-            Run(mode + " widget and glyph use the selected disk colours", delegate {
+            Run(mode + " normal accents and rendered disks share a coherent blue palette", delegate {
                 SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
                 using (Bitmap widget = Render(2, full, false, false, ""))
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
-                    if (mode == "dark") {
-                        foreach (Color pixel in new[] { quota, glyph.GetPixel(36, 18) })
-                            Check(ColorDistance(pixel, Color.FromArgb(25, 25, 112)) < 5, "dark quota disk is MidnightBlue #191970");
-                        foreach (Color pixel in new[] { time, glyph.GetPixel(36, 46) })
-                            Check(ColorDistance(pixel, Color.FromArgb(0, 71, 171)) < 5, "dark time disk is CobaltBlue #0047AB");
-                    } else {
-                        foreach (Color pixel in new[] { quota, glyph.GetPixel(36, 18) })
-                            Check(ColorDistance(pixel, Color.FromArgb(30, 144, 255)) < 5, "light quota disk is DodgerBlue #1E90FF");
-                        foreach (Color pixel in new[] { time, glyph.GetPixel(36, 46) })
-                            Check(ColorDistance(pixel, Color.FromArgb(135, 206, 235)) < 5, "light time disk is SkyBlue #87CEEB");
+                    foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
+                        Check(accent.GetHue() >= 205 && accent.GetHue() <= 225, "normal highlights stay in the same blue family instead of mixing green and blue");
+                    Check(ColorDistance(quota, time) >= 20, "quota and time keep subtly distinct shades");
+                }
+            });
+            Run(mode + " rendered disks and progress fills have 3:1 contrast against their track and surfaces", delegate {
+                SetMode(mode); QuotaWindow full = Sample(); full.UsedPercent = 0; full.ResetsAtUtc = Now.AddDays(7);
+                using (Bitmap widget = Render(2, full, false, false, ""))
+                using (Bitmap stale = Render(2, full, true, false, ""))
+                using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
+                    double minimum = Double.MaxValue;
+                    foreach (Color fill in new[] { widget.GetPixel(28, 20), widget.GetPixel(28, 60), stale.GetPixel(28, 20), glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.WidgetQuotaColor }) {
+                        foreach (Color adjacent in new[] { Theme.Border, Theme.Card, WidgetRenderer.Surface }) {
+                            double front = Luminance(fill), back = Luminance(adjacent);
+                            double ratio = (Math.Max(front, back) + .05) / (Math.Min(front, back) + .05);
+                            minimum = Math.Min(minimum, ratio);
+                            Check(ratio >= 3, "visible fill requires 3:1 against adjacent track/surface, got " + ratio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+                        }
                     }
+                    Console.WriteLine("GRAPHICS " + mode + " minimum=" + minimum.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
                 }
             });
             Run(mode + " semantic text meets 4.5:1 contrast on its actual surfaces", delegate {
@@ -211,7 +220,7 @@ internal static class ThemeTests
                 PreviewText(graphics, "Weekly quota", left + 38, 125, 17, Theme.Text); PreviewText(graphics, "63% remaining", left + 38, 157, 22, Theme.Aqua);
                 PreviewText(graphics, "Resets in 5d 0h", left + 38, 194, 13, Theme.Blue);
                 Theme.Rounded(graphics, new RectangleF(left + 38, 218, 394, 5), 2.5f, Theme.Border, null);
-                Theme.Rounded(graphics, new RectangleF(left + 38, 218, 394 * .63f, 5), 2.5f, Theme.WidgetTimeColor, null);
+                Theme.Rounded(graphics, new RectangleF(left + 38, 218, 394 * .63f, 5), 2.5f, Theme.WidgetQuotaColor, null);
                 string[] labels = { "Normal", "Stale", "Error", "Sync" };
                 for (int row = 0; row < 4; row++) {
                     int top = 264 + row * 83; PreviewText(graphics, labels[row], left + 24, top + 19, 15, row == 1 || row == 2 ? Theme.Warning : Theme.Muted);

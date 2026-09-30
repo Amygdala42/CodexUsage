@@ -2,8 +2,8 @@
 
 ## 1.0.4 本地配色修订 / Local palette revision — Unreleased
 
-- 任务栏与托盘的额度／时间饼图：深色改为 MidnightBlue #191970／CobaltBlue #0047AB，浅色改为 DodgerBlue #1E90FF／SkyBlue #87CEEB。详情弹窗进度条分别为深色 #0047AB／浅色 #87CEEB。文字、背景、布局、过期提示、功能与版本号不变。
-  Taskbar and tray quota/time disks use MidnightBlue #191970 / CobaltBlue #0047AB in dark mode and DodgerBlue #1E90FF / SkyBlue #87CEEB in light mode. Detail progress bars use #0047AB / #87CEEB respectively. Text, backgrounds, layout, stale-state styling, functionality and version are unchanged.
+- 统一本地深浅模式配色：深色为深蓝灰底与柔和亮蓝，浅色为柔和浅灰底与沉稳蓝色；额度数字、饼图、倒计时和进度条使用协调的蓝色强调，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
+  Unify dark/light palettes: dark slate surfaces with soft blue highlights, and gentle gray surfaces with muted blue accents. Quota values, disks, countdowns and progress bars use coordinated blues, with separate amber warnings. Add an accent outline to active dropdown rows and verify text/graphic contrast; layout, functionality and version are unchanged.
 
 ## 1.0.4 — 2026-09-30
 

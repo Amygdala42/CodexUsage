@@ -176,7 +176,7 @@ namespace CodexQuotaLite
                 {
                     int index = first + row;
                     Rectangle rect = DetailsLayout.PopupRowBounds(Width, rowHeight, row);
-                    if (index == active) Theme.Rounded(e.Graphics, rect, 5, Theme.Border, null);
+                    if (index == active) Theme.Rounded(e.Graphics, rect, 5, Theme.Border, Theme.Aqua);
                     Rectangle text = DetailsLayout.PopupTextBounds(rect);
                     TextRenderer.DrawText(e.Graphics, Convert.ToString(owner.Items[index]), Font, text, Theme.Text,
                         DetailsLayout.SelectorTextFlags);

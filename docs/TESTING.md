@@ -81,6 +81,14 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-09-30 本地统一配色修订（仍为 1.0.4）：重整深浅主题的背景、正文、主次蓝色强调与警告色，进度条使用额度饼图主色，下拉活动行增加强调边框。新增图形对比度回归并替换过时的固定色样断言，旧版为 23 通过/4 失败（包括深色图形 1.38:1、浅色 2.43:1）；最终构建和 All **265 项通过、0 失败**：Domain 37、Bridge 14、ResetFeed 46、Theme 27、Layout 121、Stacking 20。实际渲染填色相对轨道/背景的最低对比度为深色 4.80:1、浅色 3.32:1，所测正文/语义文字最低为深色 4.80:1、浅色 5.01:1。已查看位图和完成独立配色/源码审查；本构建仍未运行原生 GUI 交互。
+
+The local unified-palette revision on 2026-09-30 retains version 1.0.4. Surfaces, text, blue accents and warning colours are coordinated; progress bars use the quota disk accent and active dropdown rows gain an accent outline. New graphical-contrast regressions and updated hue checks produced 23 passes/4 failures on the previous palette, including graphical ratios of 1.38:1 dark and 2.43:1 light. The final build and All passed **265 checks, zero failures**: Domain 37, Bridge 14, ResetFeed 46, Theme 27, Layout 121, Stacking 20. Minimum measured rendered-fill contrast against tracks/surfaces is 4.80:1 dark and 3.32:1 light; tested semantic text minima are 4.80:1 dark and 5.01:1 light. Bitmaps and code were independently reviewed; native GUI interaction with this build was not executed.
+
+检查目标为文字至少 4.5:1、有效图形至少 3:1，参考 W3C 的[文字对比度说明](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)与[非文字对比度说明](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)。检查对象为本套件覆盖的颜色组合和绘图产物，不是整个原生应用的无障碍认证。
+
+The checks target 4.5:1 text and 3:1 meaningful graphical contrast, following the linked W3C guidance. They cover the tested colour combinations and rendered graphics, not full accessibility certification of the native application.
+
 2026-09-30 本地四色配色修订（仍为 1.0.4，未替换发行附件）：深色饼图 #191970/#0047AB，浅色 #1E90FF/#87CEEB；详情进度条分别为 #0047AB/#87CEEB。其余文字、背景、布局和原过期状态颜色保持不变。All 263 项通过后，按最终要求保留原倒计时文字色并更新详情进度条，重新构建与 Theme 25/25 检查均通过。最终最低文字对比度为深色 6.24:1、浅色 4.81:1；已检查配色位图，原生 GUI 交互未执行。指定的 MidnightBlue 饼图本身偏暗，文字对比度检查不代表图形对比度达到同一数值。
 
 The local four-colour revision on 2026-09-30 retains version 1.0.4 and has not replaced release assets. Dark disks use #191970/#0047AB; light disks use #1E90FF/#87CEEB. Detail progress bars use #0047AB/#87CEEB. Other text, backgrounds, layout and stale-state colours are unchanged. After All passed 263 checks, the final countdown text was kept unchanged and detail progress fills updated; the final build and Theme 25/25 passed again. Minimum text contrast is 6.24:1 dark and 4.81:1 light. Rendered bitmaps were inspected; native GUI interaction was not executed. The specified MidnightBlue disk is deliberately dark; text contrast results do not describe graphical contrast.
