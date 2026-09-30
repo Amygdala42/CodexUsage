@@ -40,3 +40,13 @@ Optional: regenerate the four bilingual illustrations with Python 3, Pillow and 
 ```powershell
 python scripts/render-previews.py assets
 ```
+
+README 中的浮条和主题对照图来自生产绘图代码，可在运行 Theme 检查后复制生成；同样只使用合成数据，不启动原生窗口。
+
+The README widget and theme comparison come from the production renderer. Regenerate them with the Theme suite and copy its synthetic-data output; this does not start a native window.
+
+```powershell
+./scripts/test.ps1 -Suite Theme
+Copy-Item env/tests/theme-render/widget-dark.png assets/widget-preview.png
+Copy-Item env/tests/theme-render/theme-comparison.png assets/appearance-preview.png
+```

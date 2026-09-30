@@ -19,8 +19,8 @@ MUTED = (150, 169, 188)
 AQUA = (70, 224, 196)
 BLUE = (106, 163, 255)
 WIDGET_BG = (24, 31, 39)
-QUOTA = (58, 190, 215)
-TIME = (51, 154, 197)
+QUOTA = (108, 207, 145)
+TIME = (168, 229, 188)
 
 
 class Canvas:
@@ -67,15 +67,15 @@ class Canvas:
 
 
 def render(plan, english, destination, fonts, version):
-    # Consistent example clock: 2026-09-15 10:00 local time.
+    # Synthetic example clock: 2026-09-30 10:00 local time.
     if plan == "Plus":
         windows = [
-            ("5h" if english else "5 小时额度", 79, "Resets in 3h 42m" if english else "3小时42分后重置", "09-15 13:42"),
-            ("Weekly" if english else "每周额度", 39, "Resets in 4d 12h" if english else "4天12小时后重置", "09-19 22:00"),
+            ("5h" if english else "5 小时额度", 79, "Resets in 3h 42m" if english else "3小时42分后重置", "09-30 13:42"),
+            ("Weekly" if english else "每周额度", 39, "Resets in 4d 12h" if english else "4天12小时后重置", "10-04 22:00"),
         ]
     else:
         windows = [
-            ("Weekly" if english else "每周额度", 95, "Resets in 4d 12h" if english else "4天12小时后重置", "09-19 22:00"),
+            ("Weekly" if english else "每周额度", 95, "Resets in 4d 12h" if english else "4天12小时后重置", "10-04 22:00"),
         ]
     cards_height = len(windows) * 74 + (len(windows) - 1) * 8
     choice_y = 84 + cards_height + 48
@@ -83,7 +83,7 @@ def render(plan, english, destination, fonts, version):
     app_height = footer_y + 44
     top = 26
     canvas = Canvas(top + app_height + 83, fonts)
-    canvas.text(plan + (" · Example data" if english else " · 示例数据"), 0, 0, 360, 20, 12, MUTED, align="center")
+    canvas.text(plan + (" · Layout illustration · Example data" if english else " · 布局示意 · 示例数据"), 0, 0, 360, 20, 12, MUTED, align="center")
     canvas.round(.5, top + .5, 359, app_height - 1, 18, BG, BORDER)
     canvas.text("CodexUsage", 21, top + 18, 153, 28, 22, bold=True)
     canvas.text(version, 176, top + 18, 43, 28, 12, MUTED, align="center")
@@ -102,12 +102,16 @@ def render(plan, english, destination, fonts, version):
         canvas.round(32, y + 37, 296 * amount / 100, 5, 2.5, AQUA)
         canvas.text(countdown, 32, y + 49, 170, 17, 9.5, BLUE)
         canvas.text(reset, 204, y + 49, 124, 17, 9.5, MUTED, align="right")
-    canvas.text("Latest reset  09-12 16:09  Regular" if english else "最近重置公告  09-12 16:09  即时重置", 20, top + 84 + cards_height + 10, 262, 28, 11, MUTED)
+    canvas.text("Latest reset  09-29 16:09  Regular" if english else "最近重置公告  09-29 16:09  即时重置", 20, top + 84 + cards_height + 10, 262, 28, 11, MUTED)
     canvas.text("Source" if english else "来源", 290, top + 84 + cards_height + 10, 50, 28, 11, BLUE, align="right")
-    canvas.round(20, top + choice_y, 76, 28, 0, CARD, BORDER)
-    canvas.text("中文" if english else "English", 20, top + choice_y, 76, 28, 11, align="center")
-    canvas.round(108, top + choice_y, 232, 28, 6.4, CARD, BORDER)
-    canvas.text(windows[0][0], 115, top + choice_y, 197, 28, 11)
+    # DetailsLayout.ChoiceRow: language, theme and selected quota share one row.
+    # Captions and 11 px UI font match DetailsLayout / DetailsForm at 100% DPI.
+    canvas.round(20, top + choice_y, 60, 28, 0, CARD, BORDER)
+    canvas.text("中文" if english else "English", 20, top + choice_y, 60, 28, 11, align="center")
+    canvas.round(88, top + choice_y, 88, 28, 0, CARD, BORDER)
+    canvas.text("Light mode" if english else "浅色模式", 88, top + choice_y, 88, 28, 11, align="center")
+    canvas.round(184.5, top + choice_y + .5, 155, 27, 6.44, CARD, BORDER)
+    canvas.text(windows[0][0], 189, top + choice_y, 130, 28, 11)
     canvas.line([(321.8, top + choice_y + 11.5), (325.2, top + choice_y + 14.9), (328.6, top + choice_y + 11.5)], MUTED, 1.3)
     canvas.line([(20, top + footer_y - 8), (340, top + footer_y - 8)], BORDER)
     canvas.text("Every 5 min" if english else "额度每5分钟自动刷新", 20, top + footer_y, 124, 28, 10, MUTED)
@@ -125,7 +129,7 @@ def render(plan, english, destination, fonts, version):
     canvas.disk(237, icon_y + 7, 12, 75, QUOTA)
     canvas.disk(237, icon_y + 21, 12, 200 / 3.6, TIME)
     canvas.text("Taskbar widget" if english else "任务栏小条", 69, icon_y + 47, 124, 16, 11, MUTED, align="center")
-    canvas.text("Tray / EXE" if english else "托盘 / EXE 图标", 190, icon_y + 47, 106, 16, 11, MUTED, align="center")
+    canvas.text("Tray icon" if english else "托盘图标", 190, icon_y + 47, 106, 16, 11, MUTED, align="center")
     canvas.save(destination)
 
 

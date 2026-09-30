@@ -4,7 +4,7 @@
 
 A lightweight Windows widget for Codex quota and reset time, next to the notification area.
 
-**[Download CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.3/CodexUsage.exe)** · [Releases and updates](https://github.com/Amygdala42/CodexUsage/releases)
+**[Download v1.0.4 · CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.4/CodexUsage.exe)** · [ZIP package](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.4/CodexUsage-Windows-x64.zip) · [Release notes](https://github.com/Amygdala42/CodexUsage/releases/tag/v1.0.4)
 
 For Windows x64.
 
@@ -21,7 +21,7 @@ For Windows x64.
 
 ## Examples
 
-Illustrations of the v1.0.3 layout with example data; available quota windows depend on the account's actual response.
+Illustrations of the v1.0.4 layout using example data, not live-account screenshots; available quota windows depend on the account's actual response.
 
 ### Plus
 
@@ -30,6 +30,12 @@ Illustrations of the v1.0.3 layout with example data; available quota windows de
 ### Pro
 
 ![Pro interface example](assets/pro-preview-en.png)
+
+### Dark and light
+
+The production renderer and example data illustrate both themes in normal, stale, error and syncing states.
+
+![Dark and light rendering preview](assets/appearance-preview.png)
 
 ## Download and run
 
@@ -48,7 +54,7 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current source is **1.0.4 with dark/light mode switching (unreleased)**. The download link above still points to the published 1.0.3 release, and the illustrations retain that layout. Fixes address protocol input encoding, announcement caching and retries, keeping the usage selector open during refresh, and responding to taskbar occlusion through desktop reorder events. See [TESTING](docs/TESTING.md) for verification scope.
+The current version is **v1.0.4** (2026-09-30), with executable file and assembly versions **1.0.4.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, and recovery from taskbar occlusion on desktop reorder events. All 263 automated checks passed before release. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
 
 ```powershell
 ./scripts/build.ps1

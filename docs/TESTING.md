@@ -1,6 +1,6 @@
 # 测试 / Testing
 
-## 1.0.4（未发布 / Unreleased）
+## 1.0.4 — 2026-09-30
 
 本版继续使用 1.0.4 版本号，并加入深色／浅色模式切换。主题选择经真实设置文件保存/加载测试；配色、图标和额度条经纯位图渲染验证，不创建 Form、Control 或托盘窗口，不等同于交互式 GUI 验收。
 
@@ -80,6 +80,10 @@ Stacking 使用纯委托测试实际生产的层级决策、事件筛选与队�
 Stacking tests production ordering decisions, event filtering and queue coalescing with delegates; it creates no windows and performs no native raises. Read-only observation of the existing process is separate live evidence, not post-fix visual acceptance.
 
 ## 结果 / Results
+
+发布前复验：2026-09-30 在最终 v1.0.4 生产源码上重新运行 All，Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20，共 **263 项通过、0 失败**。随后仅整理发布文档、示例图和包内说明，不改动生产代码；发行 EXE 沿用已验证的 1.0.4.0 构建。
+
+Pre-release verification on 2026-09-30 reran All against the final v1.0.4 production source: Domain 37, Bridge 14, ResetFeed 46, Theme 25, Layout 121 and Stacking 20 — **263 checks passed, zero failures**. Subsequent changes only prepare release documentation, illustrations and package notes; production code is unchanged and the release reuses the verified 1.0.4.0 executable.
 
 2026-09-30 浅色蓝色样修订（仍为 1.0.4）：从用户两张色样读取到 #7BBDFF / #1C8DFF，仅用于浅色模式的额度/时间饼图；浅色倒计时文字使用 #2056AA。深色配色、各背景、边框和尺寸不变。构建与 All 通过 **263 项、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 25、Layout 121、Stacking 20）。更新后的主题断言在修改前为 23 通过/2 失败，修改后为 25/25；深色浮条和图标 PNG 与上一份绿色构建逐字节一致。最低语义文字对比度仍为深色 6.24:1、浅色 4.81:1。已查看实际位图预览；未执行本构建的原生 GUI 交互。
 

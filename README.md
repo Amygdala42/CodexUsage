@@ -4,7 +4,7 @@
 
 轻量 Windows Codex 额度小窗，在任务栏通知区旁查看剩余额度和重置倒计时。
 
-**[下载 CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.3/CodexUsage.exe)** · [发行版与更新说明](https://github.com/Amygdala42/CodexUsage/releases)
+**[下载 v1.0.4 · CodexUsage.exe](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.4/CodexUsage.exe)** · [ZIP 程序包](https://github.com/Amygdala42/CodexUsage/releases/download/v1.0.4/CodexUsage-Windows-x64.zip) · [更新说明](https://github.com/Amygdala42/CodexUsage/releases/tag/v1.0.4)
 
 适用于 Windows x64。
 
@@ -21,7 +21,7 @@
 
 ## 界面示例
 
-以下为 v1.0.3 布局示意图，使用示例数据；额度项目以账号实际返回为准。
+以下为 v1.0.4 布局示意图，使用示例数据，并非真实账号截图；额度项目以账号实际返回为准。
 
 ### Plus
 
@@ -30,6 +30,12 @@
 ### Pro
 
 ![Pro 界面示例](assets/pro-preview-zh.png)
+
+### 深色与浅色
+
+下图使用程序实际绘图代码和示例数据，展示两种主题及正常、过期、失败、更新中状态。
+
+![深色与浅色绘图预览](assets/appearance-preview.png)
 
 ## 下载与运行
 
@@ -48,7 +54,7 @@
 
 ## 开发
 
-当前源码为 **1.0.4（含深浅主题切换，尚未发布）**；上方下载链接仍指向已发布的 1.0.3，示意图也保留该版布局。包含通信输入编码、公告缓存和重试修复，刷新时保留额度选择菜单，以及任务栏遮挡浮条时按层级变化事件及时恢复。验证范围见 [测试说明](docs/TESTING.md)。
+当前版本为 **v1.0.4**（2026-09-30），EXE 文件与程序集版本为 **1.0.4.0**。包含深浅主题切换、单行设置布局、通信输入编码与公告缓存修复，以及任务栏遮挡浮条时按层级变化事件恢复。发布前 263 项自动检查通过；原生 GUI、真实 Plus 账号及其他多屏幕/DPI 场景的验证范围见 [测试说明](docs/TESTING.md)。
 
 ```powershell
 ./scripts/build.ps1
