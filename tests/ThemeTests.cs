@@ -103,13 +103,19 @@ internal static class ThemeTests
                 using (Bitmap widget = Render(2, full, false, false, ""))
                 using (Bitmap glyph = WidgetRenderer.RenderGlyph(64)) {
                     Color quota = widget.GetPixel(28, 20), time = widget.GetPixel(28, 60);
-                    float minimumHue = mode == "dark" ? 205 : 135, maximumHue = mode == "dark" ? 225 : 155;
-                    foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
-                        Check(accent.GetHue() >= minimumHue && accent.GetHue() <= maximumHue, "normal highlights stay blue in dark mode and green in light mode");
-                    Check(ColorDistance(quota, time) >= 100, "quota and time keep clearly distinct shades");
                     double quotaLight = Luminance(quota), timeLight = Luminance(time);
                     double pairContrast = (Math.Max(quotaLight, timeLight) + .05) / (Math.Min(quotaLight, timeLight) + .05);
-                    Check(pairContrast >= 1.5, "quota and time need a visible lightness difference");
+                    if (mode == "dark") {
+                        foreach (Color primary in new[] { quota, glyph.GetPixel(36, 18), Theme.Aqua, Theme.WidgetQuotaColor })
+                            Check(primary.ToArgb() == Color.FromArgb(58, 190, 215).ToArgb(), "quota, glyph and popup primary match desktop icon #3ABED7");
+                        foreach (Color secondary in new[] { time, glyph.GetPixel(36, 46), Theme.Blue, WidgetRenderer.TimeTextColor })
+                            Check(secondary.ToArgb() == Color.FromArgb(51, 154, 197).ToArgb(), "time, glyph and popup secondary match desktop icon #339AC5");
+                    } else {
+                        foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
+                            Check(accent.GetHue() >= 135 && accent.GetHue() <= 155, "light mode keeps its green family");
+                        Check(ColorDistance(quota, time) >= 100, "light quota and time keep clearly distinct shades");
+                        Check(pairContrast >= 1.5, "light quota and time keep their visible lightness difference");
+                    }
                     Console.WriteLine("PAIR " + mode + " contrast=" + pairContrast.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
                 }
             });

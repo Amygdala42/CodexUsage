@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 本地深色配色修订 / Local dark-palette revision — Unreleased
+
+- 深色模式的任务栏饼图、弹窗额度数字、进度条、倒计时和链接统一采用桌面图标的两种青蓝：主色 #3ABED7、次色 #339AC5。浅色模式、各背景、布局、功能与版本号保持不变。
+  Match dark-mode taskbar disks, popup quota values, progress bars, countdowns and links to the desktop icon: primary #3ABED7 and secondary #339AC5. Light mode, backgrounds, layout, functionality and version are unchanged.
+
 ## 1.0.4 — 2026-09-30
 
 - 加大同一主题中两枚饼图的明暗差距：深色两蓝明暗比约 1.72:1，浅色两绿约 1.64:1；背景与文字不变，进度条随额度饼图主色更新。

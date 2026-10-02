@@ -81,6 +81,10 @@ Stacking tests production ordering decisions, event filtering and queue coalesci
 
 ## 结果 / Results
 
+2026-10-02 本地深色配色修订（仍为 1.0.4）：任务栏与弹窗的主次强调统一为桌面图标的 #3ABED7 / #339AC5。深色用实际像素与弹窗主题色的精确色值断言替换之前自设的色相/明暗差距约束，浅色区分度断言保持不变；旧配色为 26 通过/1 失败，更新后 Theme 27 项全过，构建及 All **265 项通过、0 失败**。深色最低语义文字对比度 4.65:1、图形对比度 3.61:1，两色明暗比 1.45:1；浅色仍为 4.77:1、3.05:1、1.64:1。浅色浮条、浅色托盘位图和桌面 ICO 与改前逐字节一致，背景、布局和功能不变；预览已检查，原生 GUI 交互未执行。
+
+The 2026-10-02 local dark-palette revision retains version 1.0.4 and uses desktop icon colours #3ABED7 / #339AC5 for taskbar and popup accents. Exact rendered-pixel and popup-colour assertions replace the previous custom dark hue/separation targets; light-mode checks are unchanged. The old palette gave 26 passes/1 failure; Theme now passes all 27 checks, and the build and All passed **265 checks, zero failures**. Dark minima are 4.65:1 text and 3.61:1 graphics, with a 1.45:1 disk-to-disk ratio; light minima remain 4.77:1 and 3.05:1, with a 1.64:1 pair ratio. Light widget/glyph bitmaps and the desktop ICO are byte-identical to the previous revision. Backgrounds, layout and functionality are unchanged; previews were inspected and native GUI interaction was not executed.
+
 2026-09-30 v1.0.4 配色更新发布前复验：在最终双蓝/双绿生产源码上重新运行 All，**265 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 27、Layout 121、Stacking 20）。本次随后仅整理发行文档与程序包说明，复用已验证的 1.0.4.0 EXE，SHA-256 为 `D7E44FC40230ADE214CDCC0AAE39472A5B5F67B9428C93A6AAB3BC97CD4FA8A3`。以下本地修订记录保留为历史验证过程。
 
 The 2026-09-30 v1.0.4 palette-update release check reran All against the final blue/green production source: **265 checks passed, zero failures** (Domain 37, Bridge 14, ResetFeed 46, Theme 27, Layout 121, Stacking 20). Subsequent changes only prepare release documentation and package notes; the release reuses the verified 1.0.4.0 executable with the SHA-256 above. The local revision records below document historical validation steps.
