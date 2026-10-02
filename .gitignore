@@ -1,5 +1,12 @@
-# Generated build, test, preference and log data
+# Actual environments only; never store build products here
 env/
+# Regenerable build/test products, local delivery batches and evidence
+build/
+output/
+history/
+records/
+.worktrees/
+# Generated binaries, preferences and logs
 bin/
 obj/
 *.exe

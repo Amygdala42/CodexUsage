@@ -15,9 +15,9 @@ namespace CodexQuotaLite
             Color.FromArgb(24, 34, 48), Color.FromArgb(58, 190, 215), Color.FromArgb(51, 154, 197), Color.FromArgb(51, 154, 197), Color.FromArgb(75, 94, 119));
         private static readonly Palette Light = new Palette("light",
             Color.FromArgb(229, 229, 229), Color.FromArgb(239, 239, 239), Color.FromArgb(214, 220, 229),
-            Color.FromArgb(35, 48, 68), Color.FromArgb(82, 97, 118), Color.FromArgb(47, 104, 70),
-            Color.FromArgb(53, 107, 76), Color.FromArgb(132, 82, 12),
-            Color.FromArgb(232, 232, 232), Color.FromArgb(37, 102, 59), Color.FromArgb(75, 136, 95), Color.FromArgb(53, 107, 76), Color.FromArgb(167, 179, 196));
+            Color.FromArgb(35, 48, 68), Color.FromArgb(82, 97, 118), Color.FromArgb(75, 136, 95),
+            Color.FromArgb(37, 102, 59), Color.FromArgb(132, 82, 12),
+            Color.FromArgb(232, 232, 232), Color.FromArgb(75, 136, 95), Color.FromArgb(37, 102, 59), Color.FromArgb(37, 102, 59), Color.FromArgb(167, 179, 196));
         private static Palette current = Dark;
 
         internal static void Apply(string mode) { current = mode == "light" ? Light : Dark; }
@@ -33,6 +33,7 @@ namespace CodexQuotaLite
         internal static Color Warning { get { return current.Warning; } }
         internal static Color WidgetSurface { get { return current.WidgetSurface; } }
         internal static Color WidgetQuotaColor { get { return current.WidgetQuotaColor; } }
+        internal static Color WidgetQuotaTextColor { get { return IsDark ? Text : Color.Black; } }
         internal static Color WidgetTimeColor { get { return current.WidgetTimeColor; } }
         internal static Color WidgetTimeTextColor { get { return current.WidgetTimeTextColor; } }
         internal static Color WidgetBorder { get { return current.WidgetBorder; } }

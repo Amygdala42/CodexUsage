@@ -1,5 +1,31 @@
 # 测试 / Testing
 
+## 1.1.0 — 2026-10-02
+
+正式发行候选 `output/2026-10-02/batch-008` 通过默认完整打包：构建成功，All **278 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 27、Layout 121、Stacking 20、Package 13），未跳过测试。程序的文件、程序集和应用清单版本统一为 **1.1.0.0**。打包测试夹具从应用清单读取版本，避免升版后仍引用旧版。
+
+Release candidate `output/2026-10-02/batch-008` completed default full packaging: the build succeeded and All passed **278 checks, zero failures** (Domain 37, Bridge 14, ResetFeed 46, Theme 27, Layout 121, Stacking 20, Package 13), with no tests skipped. Executable file, assembly and application manifest versions are **1.1.0.0**. Packaging fixtures read their version from the application manifest so upgrades do not retain a hard-coded older version.
+
+本次验证覆盖下述认可配色、合成数据位图和打包流程；中英文 Plus/Pro 展示图已更新为 v1.1.0。未执行原生 GUI 全交互、真实 Plus 账号或多屏幕/DPI 验收；Windows PowerShell 5.1 运行兼容性的历史未验范围仍保留。
+
+This run verifies the accepted palette below, synthetic bitmap rendering and packaging. Bilingual Plus/Pro illustrations now show v1.1.0. Native GUI interaction, live Plus accounts and multi-display/DPI acceptance were not performed; the historical Windows PowerShell 5.1 runtime verification limitation remains.
+
+## 2026-10-02 浅色绿色对调验证 / Light green swap verification
+
+深色任务栏百分比保留原有近白色 `#E6EDF5`。浅色额度饼图、弹窗额度数字及进度条精确使用 `#4B885F`；时间饼图、任务栏倒计时、弹窗重置文字及链接精确使用 `#25663B`。任务栏上方百分比与加载前的横杠 `—` 使用纯黑 `#000000`，既有主题测试核对二者的实际渲染像素，以及倒计时与饼图同色。黑色断言在修改前为 26 通过、1 失败，修改后 Theme **27 项通过、0 失败**。浅绿弹窗额度强调的对比度检查仍单独采用 3:1 下限；其他文字仍检查 4.5:1，不声称全部文字达到原目标。浅色最低语义文字／图形对比度均为 3.05:1，两个饼图明暗比为 1.64:1。已查看合成数据位图；未执行本次构建的原生 GUI 交互验收。完整打包的实际结果以相应交付批次的 `manifest.json` 和 `tests.log` 为准。
+
+The dark taskbar percentage retains near-white `#E6EDF5`. Light quota disks, popup quota values and progress bars use `#4B885F`; time disks, taskbar countdowns, popup reset text and links use `#25663B`. Taskbar percentages and the loading quota placeholder `—` use pure black `#000000`. Existing Theme checks inspect their rendered pixels and confirm that countdowns still match the time disks. The black-text assertion produced 26 passes and 1 failure before the change, and all **27 pass** afterward. Only the light popup quota accent retains a 3:1 contrast floor; other text retains 4.5:1 checks. This does not establish the original target for every text colour. Light minimum text and graphical contrast are both 3.05:1, with a 1.64:1 disk-to-disk ratio. Synthetic previews were inspected; native GUI interaction was not performed. Each delivery's `manifest.json` and `tests.log` record its full packaging result.
+
+## 2026-10-02 目录迁移验证 / Layout migration verification
+
+在新位置使用 PowerShell 7.6.5 执行构建与完整打包，All **278 项通过、0 失败**（原应用 265 项、打包回归 13 项）。`output/2026-10-02/batch-001` 完整测试通过；第二批通过旧打包入口调用、显式跳过重复测试，仅用于验证编号递增和第一批不被覆盖。两批的程序、ZIP、校验和及 39 个输入文件哈希均已核对。程序已从第一批新位置恢复运行，设置文件内容未变；这不等同于 GUI 全交互验收。
+
+Build and full packaging passed all **278 checks, zero failures** under PowerShell 7.6.5 at the new location. Batch 001 completed all tests. Batch 002 explicitly skipped repeated tests to verify the legacy forwarding entry, batch increment and preservation of batch 001. Both deliveries passed artifact, ZIP and 39-file input-hash checks. Restoring the application process with unchanged settings is not full GUI acceptance.
+
+Windows PowerShell 5.1 的 25 个当前/适配脚本通过语法解析；其执行策略为 Restricted，未改变策略，也未运行这些脚本。该宿主的运行兼容性仍未验证。详细本地证据在 `records/organization/2026-10-02/batch-001/`，不随源码上传。
+
+Windows PowerShell 5.1 parsed 25 current/adapted scripts without syntax errors. Its Restricted policy was preserved, so runtime compatibility on that host remains unverified. Detailed local evidence is retained under `records/organization/2026-10-02/batch-001/` and excluded from source publication.
+
 ## 1.0.4 — 2026-09-30
 
 本版继续使用 1.0.4 版本号，并加入深色／浅色模式切换。主题选择经真实设置文件保存/加载测试；配色、图标和额度条经纯位图渲染验证，不创建 Form、Control 或托盘窗口，不等同于交互式 GUI 验收。
@@ -42,15 +68,20 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite Theme
 ./scripts/test.ps1 -Suite Layout
 ./scripts/test.ps1 -Suite Stacking
+./scripts/test.ps1 -Suite Package
 ./scripts/test.ps1 -Suite All
 
 # 只编译 / Compile only
 ./scripts/test.ps1 -Suite All -BuildOnly
 ```
 
-`All` 包含 Domain、Bridge、ResetFeed、Theme、Layout 和 Stacking。`-BuildOnly` 编译所选套件，不执行测试。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `env/tests/theme-render/`；Layout 将逐项字体测量写入 `env/tests/layout-compact/`。
+`All` 包含 Domain、Bridge、ResetFeed、Theme、Layout、Stacking 和 Package。`-BuildOnly` 只编译所选 C# 套件，不执行测试；Package 是 PowerShell 套件，指定 `-BuildOnly` 时跳过。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `build/tests/theme-render/`；Layout 将逐项字体测量写入 `build/tests/layout-compact/`。
 
-`All` runs Domain, Bridge, ResetFeed, Theme, Layout and Stacking. `-BuildOnly` compiles the selected suites without running them. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `env/tests/theme-render/`; Layout writes individual font measurements to `env/tests/layout-compact/`.
+`All` runs Domain, Bridge, ResetFeed, Theme, Layout, Stacking and Package. `-BuildOnly` compiles the selected C# suites without running tests; the PowerShell Package suite is skipped. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `build/tests/theme-render/`; Layout writes individual font measurements to `build/tests/layout-compact/`.
+
+`scripts/package.ps1` 默认执行构建与 `All`，并将日志和执行状态保存在独立的 `output/YYYY-MM-DD/batch-NNN/`。`-SkipTests` 是显式跳过，不代表测试通过。目录迁移前的原始测试产物与记录保存在 `records/verification/`，发布核验在 `records/publishing/`；历史记录中的旧绝对路径保持原文，不作为当前命令入口。
+
+`scripts/package.ps1` builds and runs `All` by default, storing logs and execution status in a separate `output/YYYY-MM-DD/batch-NNN/`. `-SkipTests` is an explicit skip, not a passing test result. Original pre-migration test products and records are retained in `records/verification/`, with publication evidence in `records/publishing/`. Old absolute paths in historical evidence remain unchanged and are not current command entry points.
 
 脚本需在本机策略允许的 PowerShell 中运行。若系统明确拒绝脚本或测试程序，停止该入口并记录错误，不通过更改策略、改名或换宿主绕过。2026-09-30 本机 PowerShell 7.6.5 可运行原测试入口；Windows PowerShell 5.1 的脚本入口被执行策略拒绝，该环境未完成运行验证。
 
@@ -66,6 +97,7 @@ Use a PowerShell installation in which local policy permits these scripts. If a 
 | Theme | 深浅切换与恢复、额度条/图标真实像素、100/150/200% 绘图比例、透明圆角、文字对比度、双语状态及额度数据不变 |
 | Layout | Plus/Pro 合成响应经生产解析器生成的标签、共享布局几何、同一行控件无重叠、真实字体宽高、选择器箭头及加宽下拉列表的文字/勾选预留空间 |
 | Stacking | 层级按需修复、桌面事件筛选、排队合并、菜单/隐藏/退出门控，以及失败后重试；测试通过委托隔离原生写操作 |
+| Package | 独立文件夹内的构建/测试输出、任意工作目录、上海日期边界、默认执行 All、文件校验、输入追溯、ZIP 完整性、每日批次递增、显式跳过测试、失败留痕及互斥锁 |
 
 Domain covers parsing, calculations, settings, and runtime data paths. Bridge launches a fake server to exercise protocol and process handling. ResetFeed uses a loopback server to test the production HTTP and cache implementation without external service dependencies.
 
@@ -78,6 +110,10 @@ Layout uses production geometry and GDI font measurements for Chinese/English Pl
 Stacking 使用纯委托测试实际生产的层级决策、事件筛选与队列合并；不创建窗口或调用原生置顶。已有进程的只读窗口状态与事件采样是独立现场证据，不等同于修复后视觉验收。
 
 Stacking tests production ordering decisions, event filtering and queue coalescing with delegates; it creates no windows and performs no native raises. Read-only observation of the existing process is separate live evidence, not post-fix visual acceptance.
+
+Package 的 13 项检查使用 `build/tests/package/run-<唯一编号>/` 下的隔离源码与脚本夹具，验证打包流程，不启动应用 GUI、不访问真实账号。夹具中的测试入口用于检查 All 调用及失败传播，不递归运行 Package 本身。程序原有六个套件共 265 项，新增打包回归 13 项（含非公历区域设置）；数量表示套件组成，本轮运行是否通过以实际日志为准，不能沿用下方历史通过记录。
+
+Package defines 13 checks using isolated source and script fixtures under `build/tests/package/run-<unique-id>/`. It verifies packaging without starting the application GUI or accessing real accounts. Its fixture test command checks the All invocation and failure propagation without recursively running Package. The six existing application suites contain 265 checks, with 13 additional packaging checks including non-Gregorian host cultures; these counts describe suite composition. Results for a new run must come from its actual logs, not the historical passing results below.
 
 ## 结果 / Results
 

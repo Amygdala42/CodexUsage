@@ -19,9 +19,33 @@ The build uses C# 5, the Framework64 compiler, and system assemblies. No NuGet p
 ./scripts/build.ps1
 ```
 
-输出：`env/build/CodexUsage.exe`。程序内嵌 `LICENSE` 和 `THIRD_PARTY_NOTICES.md`。
+输出：`build/app/CodexUsage.exe`。程序内嵌 `LICENSE` 和 `THIRD_PARTY_NOTICES.md`。该位置是可重新生成的编译目录，不作为历史归档或发布目录。
 
-Output: `env/build/CodexUsage.exe`, with the license and dependency notices embedded.
+Output: `build/app/CodexUsage.exe`, with the license and dependency notices embedded. This is a regenerable build directory, not a release archive.
+
+## 按日期与批次打包 / Date-based delivery batches
+
+```powershell
+# 默认先编译并执行 All，成功后生成程序包
+# Build and run All before preparing the delivery
+./scripts/package.ps1
+
+# 仅在明确需要时跳过测试；清单会记录此选择
+# Explicitly skip tests only when needed; the manifest records this choice
+./scripts/package.ps1 -SkipTests
+```
+
+每次执行在 `output/YYYY-MM-DD/batch-NNN/` 生成独立批次。日期取打包开始时的 Asia/Shanghai 日期，每日从 `batch-001` 递增；失败批次保留记录，不覆盖、不复用其编号，重跑创建新批次。跨午夜的同一次执行仍属于开始日期。
+
+Each invocation creates a separate `output/YYYY-MM-DD/batch-NNN/` directory. It uses the Asia/Shanghai date at the start, with a daily sequence beginning at `batch-001`. Failed batches retain their records and reserve their numbers; retries create new batches. A run crossing midnight stays under its starting date.
+
+程序和 ZIP 文件名不包含版本号，版本保留在程序内部和批次清单中。批次保存程序包、校验和、构建/测试日志与清单；通过清单核对是否成功、是否跳过测试，再选择交付。此命令不提交源码、不推送 Git、不修改标签或上传 GitHub Release。
+
+Executable and ZIP filenames contain no version number; the executable and batch manifest retain the software version. Each batch stores the package, checksums, build/test logs and a manifest. Check its completion and test status before delivery. Packaging does not commit, push, change tags or upload GitHub releases.
+
+旧包保存在 `history/releases/`，旧版单文件程序保存在 `history/versions/`，迁移时留存的旧编译产物位于 `history/builds/`；它们是历史快照，不由打包命令覆盖。目录迁移记录保存在 `records/organization/`。v1.1.0 包含上述目录与打包约定，文件、程序集和应用清单版本为 1.1.0.0。
+
+Earlier packages live in `history/releases/`, older standalone executables in `history/versions/`, and builds preserved during migration in `history/builds/`; packaging never overwrites these snapshots. Directory migration records live in `records/organization/`. Version 1.1.0 includes these layout and packaging conventions, with file, assembly and application manifest versions set to 1.1.0.0.
 
 ## 运行 / Run
 
@@ -47,6 +71,6 @@ The README widget and theme comparison come from the production renderer. Regene
 
 ```powershell
 ./scripts/test.ps1 -Suite Theme
-Copy-Item env/tests/theme-render/widget-dark.png assets/widget-preview.png
-Copy-Item env/tests/theme-render/theme-comparison.png assets/appearance-preview.png
+Copy-Item build/tests/theme-render/widget-dark.png assets/widget-preview.png
+Copy-Item build/tests/theme-render/theme-comparison.png assets/appearance-preview.png
 ```

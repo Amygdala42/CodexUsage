@@ -4,7 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $sourceRoot = Join-Path $repositoryRoot 'src'
-$buildRoot = Join-Path $repositoryRoot 'env/build'
+$buildRoot = Join-Path $repositoryRoot 'build/app'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $icon = Join-Path $repositoryRoot 'assets/app.ico'
 $manifest = Join-Path $sourceRoot 'app.manifest'

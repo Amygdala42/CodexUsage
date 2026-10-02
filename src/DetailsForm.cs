@@ -201,8 +201,9 @@ namespace CodexQuotaLite
    if(!pending&&window.RemainingPercent.HasValue&&window.RemainingPercent.Value>0){track.Width*=(float)(window.RemainingPercent.Value/100);Theme.Rounded(g,track,2.5f*s,stale?Theme.Muted:Theme.WidgetQuotaColor,null);}
    string countdown=stale?UiText.T("上次结果 · 已过期","Previous result · Out of date"):pending?UiText.T("已重置 · 待更新","Reset reached · Pending"):Theme.ResetText(window,now);
    Theme.Write(g,countdown,12,49,width-150,17,9.5f,stale||pending?Theme.Warning:Theme.Blue,false,s);
-   string reset=window.ResetsAtUtc.HasValue?window.ResetsAtUtc.Value.ToLocalTime().ToString("MM-dd HH:mm"):UiText.T("重置时间未知","Reset unknown");
-   using(Font font=new Font("Microsoft YaHei UI",9.5f*s,FontStyle.Regular,GraphicsUnit.Pixel))TextRenderer.DrawText(g,reset,font,Rectangle.Round(new RectangleF((width-136)*s,49*s,124*s,17*s)),Theme.Muted,TextFormatFlags.Right|TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine|TextFormatFlags.NoPadding);
+    string reset=window.ResetsAtUtc.HasValue?window.ResetsAtUtc.Value.ToLocalTime().ToString("MM-dd HH:mm"):UiText.T("重置时间未知","Reset unknown");
+    Color resetColor=Theme.IsDark||stale||pending||!window.ResetsAtUtc.HasValue?Theme.Muted:Theme.Blue;
+    using(Font font=new Font("Microsoft YaHei UI",9.5f*s,FontStyle.Regular,GraphicsUnit.Pixel))TextRenderer.DrawText(g,reset,font,Rectangle.Round(new RectangleF((width-136)*s,49*s,124*s,17*s)),resetColor,TextFormatFlags.Right|TextFormatFlags.VerticalCenter|TextFormatFlags.SingleLine|TextFormatFlags.NoPadding);
   }
  }
 }

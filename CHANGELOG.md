@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0 — 2026-10-02
+
+- 深色任务栏百分比保留原有近白色 `#E6EDF5`，同步恢复文档示意图。
+  Keep the dark taskbar percentage in its original near-white `#E6EDF5` and restore documentation previews.
+- 浅色模式原有两种绿色对调：额度饼图、弹窗额度数字及进度条统一为 `#4B885F`；时间饼图、任务栏倒计时、弹窗重置文字及链接统一为 `#25663B`。任务栏上方百分比及加载前的横杠 `—` 改为纯黑 `#000000`，背景和其他状态提示保持原样。
+  Swap the original light-mode greens: quota disks, popup quota values and progress bars use `#4B885F`; time disks, taskbar countdowns, popup reset text and links use `#25663B`. Use pure black `#000000` for taskbar percentages and the loading quota placeholder `—`; preserve backgrounds and other status indicators.
+- 软件升级为 v1.1.0，文件、程序集和应用清单版本统一为 1.1.0.0；程序与 ZIP 名称继续不含版本号。
+  Update the software to v1.1.0 and align file, assembly and manifest versions at 1.1.0.0; executable and ZIP names remain versionless.
+- 编译和测试输出迁至 `build/app/`、`build/tests/`；`env/` 仅用于实际环境。交付、历史版本、核验记录和工作树分别归入 `output/`、`history/`、`records/`、`.worktrees/`，保留历史证据原文与迁移映射。
+  Move build/test output to `build/app/` and `build/tests/`, reserving `env/` for actual environments. Separate deliveries, history, evidence and worktrees into `output/`, `history/`, `records/` and `.worktrees/`, preserving original evidence and migration mappings.
+- 新增 `scripts/package.ps1`，默认构建并执行 All，以 Asia/Shanghai 日期和每日 `batch-NNN` 生成独立软件交付；程序与 ZIP 名称不含版本，不覆盖旧批次，失败状态和显式跳过测试均记录在清单中。
+  Add `scripts/package.ps1` to build, run All and create deliveries by Asia/Shanghai date and daily `batch-NNN`. Executable and ZIP names contain no version suffix; existing batches are never replaced, and the manifest records failures and explicit test skips.
+- 同步目录规则、构建/测试说明、忽略规则和中英文预览图；以新的 v1.1.0 发行提供程序，保留 v1.0.4 历史附件。
+  Update directory rules, build/test documentation, ignore rules and bilingual previews; deliver a new v1.1.0 release while preserving historical v1.0.4 assets.
+
 ## 1.0.4 — 2026-09-30（更新 / Updated 2026-10-02）
 
 - 深色模式的任务栏饼图、弹窗额度数字、进度条、倒计时和链接统一采用桌面图标的两种青蓝：主色 #3ABED7、次色 #339AC5。浅色模式、各背景、布局、功能与版本号保持不变。

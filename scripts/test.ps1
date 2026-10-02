@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'Stacking', 'All')][string]$Suite = 'Domain',
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'Stacking', 'Package', 'All')][string]$Suite = 'Domain',
     [switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $sourceRoot = Join-Path $repositoryRoot 'src'
 $testRoot = Join-Path $repositoryRoot 'tests'
-$outputRoot = Join-Path $repositoryRoot 'env/tests'
+$outputRoot = Join-Path $repositoryRoot 'build/tests'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
     throw 'The Windows x64 .NET Framework compiler was not found. See docs/BUILD.md.'
@@ -71,6 +71,9 @@ try {
             & $stacking
             if ($LASTEXITCODE -ne 0) { throw ('Taskbar stacking checks failed with exit code ' + $LASTEXITCODE) }
         }
+    }
+    if (($Suite -eq 'Package' -or $Suite -eq 'All') -and -not $BuildOnly) {
+        & (Join-Path $testRoot 'PackageTests.ps1') -OutputRoot (Join-Path $outputRoot 'package')
     }
     if ($BuildOnly) { Write-Output 'Test compilation completed. No tests were executed.' }
 } finally {

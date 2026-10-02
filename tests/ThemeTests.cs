@@ -111,8 +111,14 @@ internal static class ThemeTests
                         foreach (Color secondary in new[] { time, glyph.GetPixel(36, 46), Theme.Blue, WidgetRenderer.TimeTextColor })
                             Check(secondary.ToArgb() == Color.FromArgb(51, 154, 197).ToArgb(), "time, glyph and popup secondary match desktop icon #339AC5");
                     } else {
-                        foreach (Color accent in new[] { quota, time, glyph.GetPixel(36, 18), glyph.GetPixel(36, 46), Theme.Aqua, Theme.Blue, WidgetRenderer.TimeTextColor })
-                            Check(accent.GetHue() >= 135 && accent.GetHue() <= 155, "light mode keeps its green family");
+                        foreach (Color primary in new[] { quota, glyph.GetPixel(36, 18), Theme.Aqua })
+                            Check(primary.ToArgb() == Color.FromArgb(75, 136, 95).ToArgb(), "light quota disk and popup text match #4B885F");
+                        foreach (Color secondary in new[] { time, glyph.GetPixel(36, 46), Theme.Blue, WidgetRenderer.TimeTextColor })
+                            Check(secondary.ToArgb() == Color.FromArgb(37, 102, 59).ToArgb(), "light time disk and countdowns match #25663B");
+                        Check(ContainsColor(widget, new Rectangle(56, 0, 102, 40), Color.Black), "light taskbar percentage is black");
+                        using (Bitmap loading = Render(2, null, false, true, ""))
+                            Check(ContainsColor(loading, new Rectangle(56, 0, 102, 40), Color.Black), "light loading quota placeholder is black");
+                        Check(ContainsColor(widget, new Rectangle(56, 40, 102, 40), time), "rendered countdown matches its disk");
                         Check(ColorDistance(quota, time) >= 100, "light quota and time keep clearly distinct shades");
                         Check(pairContrast >= 1.5, "light quota and time keep their visible lightness difference");
                     }
@@ -136,15 +142,17 @@ internal static class ThemeTests
                     Console.WriteLine("GRAPHICS " + mode + " minimum=" + minimum.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
                 }
             });
-            Run(mode + " semantic text meets 4.5:1 contrast on its actual surfaces", delegate {
+            Run(mode + " semantic text meets the selected palette contrast requirements", delegate {
                 SetMode(mode); Check(Mode() == mode, "requested mode is active");
                 double minimum = Double.MaxValue;
+                // The requested light popup quota text matches its disk; only this accent uses the 3:1 floor.
                 foreach (Color background in new[] { Theme.Background, Theme.Card, WidgetRenderer.Surface }) {
                     foreach (Color foreground in new[] { Theme.Text, Theme.Muted, Theme.Aqua, Theme.Blue, Theme.Warning })
-                        minimum = Math.Min(minimum, RequireContrast(foreground, background, mode + " content text"));
+                        minimum = Math.Min(minimum, RequireContrast(foreground, background, mode + " content text",
+                            mode == "light" && foreground.ToArgb() == Theme.Aqua.ToArgb() ? 3 : 4.5));
                 }
                 minimum = Math.Min(minimum, RequireContrast(Theme.Text, Theme.Border, mode + " selected menu text"));
-                minimum = Math.Min(minimum, RequireContrast(Theme.Aqua, Theme.Border, mode + " selection checkmark"));
+                minimum = Math.Min(minimum, RequireContrast(Theme.Aqua, Theme.Border, mode + " selection checkmark", mode == "light" ? 3 : 4.5));
                 minimum = Math.Min(minimum, RequireContrast(WidgetRenderer.TimeTextColor, WidgetRenderer.Surface, mode + " countdown"));
                 Console.WriteLine("CONTRAST " + mode + " minimum=" + minimum.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + ":1");
             });
@@ -211,11 +219,13 @@ internal static class ThemeTests
     private static int ColorDistance(Color left, Color right) { return Math.Abs(left.R - right.R) + Math.Abs(left.G - right.G) + Math.Abs(left.B - right.B); }
     private static double Luminance(Color color) { return .2126 * Linear(color.R) + .7152 * Linear(color.G) + .0722 * Linear(color.B); }
     private static double Linear(byte component) { double value = component / 255.0; return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4); }
-    private static double RequireContrast(Color foreground, Color background, string label)
+    private static bool ContainsColor(Bitmap bitmap, Rectangle area, Color color)
+    { for (int y = area.Top; y < area.Bottom; y++) for (int x = area.Left; x < area.Right; x++) if (bitmap.GetPixel(x, y).ToArgb() == color.ToArgb()) return true; return false; }
+    private static double RequireContrast(Color foreground, Color background, string label, double minimum = 4.5)
     {
         double front = Luminance(foreground), back = Luminance(background);
         double ratio = (Math.Max(front, back) + .05) / (Math.Min(front, back) + .05);
-        Check(ratio >= 4.5, label + " requires 4.5:1, got " + ratio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)); return ratio;
+        Check(ratio >= minimum, label + " requires " + minimum.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + ":1, got " + ratio.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)); return ratio;
     }
     private static void SavePreview()
     {
