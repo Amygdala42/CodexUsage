@@ -8,7 +8,7 @@ A lightweight Windows widget for Codex quota and reset time, next to the notific
 
 For Windows x64.
 
-Local v1.0.4 palette revision: dark mode uses dark slate surfaces with two cyan-blue highlights matching the desktop icon; light mode uses gentle gray surfaces with soft green accents. Disks, quota values, countdowns, progress bars and menus share one colour family within each theme, with text and meaningful graphics checked for contrast. Dark widget disks, popup values, progress bars and links share #3ABED7 / #339AC5; light mode is unchanged. This local revision has not replaced the GitHub release assets linked above.
+The v1.0.4 palette (updated 2026-10-02): dark mode uses dark slate surfaces with two cyan-blue highlights matching the desktop icon; light mode uses gentle gray surfaces with soft green accents. Disks, quota values, countdowns, progress bars and menus share one colour family within each theme, with text and meaningful graphics checked for contrast. Dark widget disks, popup values, progress bars and links share #3ABED7 / #339AC5; light mode is unchanged.
 
 ![CodexUsage taskbar widget](assets/widget-preview.png)
 

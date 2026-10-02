@@ -1,16 +1,9 @@
 # Changelog
 
-## 1.0.4 本地深色配色修订 / Local dark-palette revision — Unreleased
+## 1.0.4 — 2026-09-30（更新 / Updated 2026-10-02）
 
 - 深色模式的任务栏饼图、弹窗额度数字、进度条、倒计时和链接统一采用桌面图标的两种青蓝：主色 #3ABED7、次色 #339AC5。浅色模式、各背景、布局、功能与版本号保持不变。
   Match dark-mode taskbar disks, popup quota values, progress bars, countdowns and links to the desktop icon: primary #3ABED7 and secondary #339AC5. Light mode, backgrounds, layout, functionality and version are unchanged.
-
-## 1.0.4 — 2026-09-30
-
-- 加大同一主题中两枚饼图的明暗差距：深色两蓝明暗比约 1.72:1，浅色两绿约 1.64:1；背景与文字不变，进度条随额度饼图主色更新。
-  Increase separation between the two disks within each theme: lightness ratios are about 1.72:1 for dark blues and 1.64:1 for light greens. Backgrounds and text are unchanged; progress bars follow the quota disk accent.
-- 统一深浅模式配色：深色为深蓝灰底与更鲜明的双蓝（#3E86E3 / #86B4F2），浅色为柔和浅灰底与双绿（#25663B / #4B885F）；额度数字、饼图、倒计时、进度条与菜单在各自主题中保持同一色系，文字使用更易读的同系色阶，警告使用独立琥珀色。下拉列表活动行增加强调边框，验证文字与图形对比度；布局、功能与版本号不变。
-  Unify dark/light palettes: dark slate surfaces with richer blues (#3E86E3 / #86B4F2), and gentle gray surfaces with greens (#25663B / #4B885F). Quota values, disks, countdowns, progress bars and menus share a colour family within each theme, with readable text shades and separate amber warnings. Add an accent outline to active dropdown rows and verify text/graphic contrast; layout, functionality and version are unchanged.
 
 - 针对任务栏周期遮挡额度浮条的层级闪烁：监听桌面层级变化，合并排队后仅在任务栏确实位于浮条上方时恢复；保留每秒兜底检查，稳定状态不再反复置顶。
   Respond to desktop reorder events when the taskbar covers the widget, coalesce checks and raise only when needed; retain the one-second fallback without redundant stable-state raises.
