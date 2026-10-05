@@ -8,6 +8,8 @@ A lightweight Windows widget for Codex quota and reset time, next to the notific
 
 For Windows x64.
 
+The download links point to the **v1.1.0 release published on 2026-10-02**. Repository source additionally contains settings recovery, protocol bounds, interaction and packaging fixes, plus immediate reset-news queries on manual Refresh. These fixes are not yet included in release assets; see [unreleased changes](CHANGELOG.md).
+
 The v1.1.0 palette (2026-10-02): dark mode uses dark slate surfaces with two cyan-blue highlights matching the desktop icon; its taskbar percentage remains near-white. Light mode uses gentle gray surfaces. The quota disk, popup quota value and progress bar use #4B885F; the time disk, taskbar countdown, popup reset text and links use #25663B. The light-mode taskbar percentage and pre-load placeholder dash are pure black #000000. Ordinary body text remains dark, while stale and error states keep their neutral-gray and amber cues.
 
 ![CodexUsage taskbar widget](assets/widget-preview.png)
@@ -18,6 +20,7 @@ The v1.1.0 palette (2026-10-02): dark mode uses dark slate surfaces with two cya
 - Shows returned quota windows with the same rules for Plus and Pro; Spark quotas are excluded.
 - Refreshes automatically every five minutes, with manual refresh available.
 - Shows the latest public reset announcement and its type, with a separate Source link. Announcements do not confirm an individual account reset.
+- In current source, manual Refresh also queries public reset news immediately; automatic news requests retain their cache and retry intervals.
 - Saves your Chinese / English preference; fixed 100% app sizing follows Windows system DPI.
 - Switches instantly between dark and light modes and remembers the choice; existing settings default to dark.
 
@@ -56,7 +59,7 @@ See [TESTING](docs/TESTING.md) for verification scope.
 
 ## Development
 
-The current version is **v1.1.0** (2026-10-02), with executable file and assembly versions **1.1.0.0**. It includes dark/light switching, a compact settings row, protocol input and announcement cache fixes, recovery from taskbar occlusion, and updated light-mode colours. The full packaging verification passed all **278 checks**. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
+Source remains at **v1.1.0**, with executable file and assembly versions **1.1.0.0**. The 2026-10-02 release package passed **278 checks**; after the subsequent source fixes, the full rerun on 2026-10-03 passed **320 checks, zero failures**. These results correspond to different source states. See [TESTING](docs/TESTING.md) for native GUI, live Plus-account and other multi-display/DPI verification limits.
 
 ```powershell
 ./scripts/build.ps1

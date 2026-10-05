@@ -91,18 +91,19 @@ namespace CodexQuotaLite
                     stage = "protocol";
                     Task stderr = DrainAsync(process.StandardError);
                     Task cancellation = Task.Delay(Timeout.Infinite, linked.Token);
+                    var replies = new ProtocolLineReader(process.StandardOutput.BaseStream);
                     await SendAsync(process, json.Serialize(new {
                         id = 1, method = "initialize", @params = new {
                             clientInfo = new { name = "codex_quota_lite", title = "Codex Quota Lite", version = typeof(CodexQuotaSource).Assembly.GetName().Version.ToString(3) }
                         }
                     })).ConfigureAwait(false);
-                    await ReadReplyAsync(process, 1, json, cancellation, linked.Token).ConfigureAwait(false);
+                    await ReadReplyAsync(replies, 1, json, cancellation, linked.Token).ConfigureAwait(false);
                     await SendAsync(process, "{\"method\":\"initialized\",\"params\":{}}").ConfigureAwait(false);
                     await SendAsync(process, "{\"id\":2,\"method\":\"account/read\",\"params\":{\"refreshToken\":false}}").ConfigureAwait(false);
-                    string accountJson = await ReadReplyAsync(process, 2, json, cancellation, linked.Token).ConfigureAwait(false);
+                    string accountJson = await ReadReplyAsync(replies, 2, json, cancellation, linked.Token).ConfigureAwait(false);
                     ValidateAccount(accountJson, json);
                     await SendAsync(process, "{\"id\":3,\"method\":\"account/rateLimits/read\"}").ConfigureAwait(false);
-                    string limitsJson = await ReadReplyAsync(process, 3, json, cancellation, linked.Token).ConfigureAwait(false);
+                    string limitsJson = await ReadReplyAsync(replies, 3, json, cancellation, linked.Token).ConfigureAwait(false);
                     QuotaSnapshot snapshot = QuotaParser.Parse(accountJson, limitsJson, DateTimeOffset.UtcNow);
                     // Drain task observes its own errors; the process is closed by finally below.
                     GC.KeepAlive(stderr);
@@ -215,22 +216,15 @@ namespace CodexQuotaLite
             }
         }
 
-        private static async Task<string> ReadReplyAsync(Process process, int expectedId,
+        private static async Task<string> ReadReplyAsync(ProtocolLineReader replies, int expectedId,
             JavaScriptSerializer json, Task cancellation, CancellationToken token)
         {
             for (int count = 0; count < 512; count++)
             {
                 token.ThrowIfCancellationRequested();
-                Task<string> read = process.StandardOutput.ReadLineAsync();
-                if (await Task.WhenAny(read, cancellation).ConfigureAwait(false) != read)
-                {
-                    token.ThrowIfCancellationRequested();
-                    throw new OperationCanceledException(token);
-                }
-                string line = await read.ConfigureAwait(false);
+                string line = await replies.ReadLineAsync(cancellation, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 if (line == null) throw new InvalidOperationException("Codex 连接已退出，请确认本机 Codex 能正常运行。");
-                if (line.Length > 1024 * 1024) throw new InvalidOperationException("额度响应过大，请稍后重试。");
                 Dictionary<string, object> message;
                 try { message = json.Deserialize<Dictionary<string, object>>(line.TrimStart('\uFEFF')); }
                 catch { throw new InvalidOperationException("Codex 返回了无法识别的数据，请刷新或更新 Codex。"); }
@@ -243,6 +237,73 @@ namespace CodexQuotaLite
                 return line;
             }
             throw new InvalidOperationException("Codex 返回的通知过多，请稍后刷新。");
+        }
+
+        private sealed class ProtocolLineReader
+        {
+            private const int MaximumLineLength = 1024 * 1024;
+            private readonly Stream stream;
+            private readonly Decoder decoder = protocolEncoding.GetDecoder();
+            private readonly byte[] bytes = new byte[4096];
+            private readonly char[] characters = new char[protocolEncoding.GetMaxCharCount(4096)];
+            private int position;
+            private int length;
+            private bool ended;
+            private bool firstCharacter = true;
+            private bool skipLineFeed;
+
+            public ProtocolLineReader(Stream stream) { this.stream = stream; }
+
+            public async Task<string> ReadLineAsync(Task cancellation, CancellationToken token)
+            {
+                var line = new StringBuilder();
+                while (true)
+                {
+                    token.ThrowIfCancellationRequested();
+                    while (position < length)
+                    {
+                        char value = characters[position++];
+                        if (firstCharacter)
+                        {
+                            firstCharacter = false;
+                            if (value == '\uFEFF') continue;
+                        }
+                        if (skipLineFeed)
+                        {
+                            skipLineFeed = false;
+                            if (value == '\n') continue;
+                        }
+                        if (value == '\r' || value == '\n')
+                        {
+                            skipLineFeed = value == '\r';
+                            return line.ToString();
+                        }
+                        if (line.Length == MaximumLineLength)
+                            throw new InvalidOperationException("额度响应过大，请稍后重试。");
+                        line.Append(value);
+                    }
+                    if (ended) return line.Length == 0 ? null : line.ToString();
+
+                    // Pipe reads return available bytes; StreamReader.ReadAsync may
+                    // wait to fill a character buffer even after a complete reply.
+                    Task<int> read = stream.ReadAsync(bytes, 0, bytes.Length);
+                    if (await Task.WhenAny(read, cancellation).ConfigureAwait(false) != read)
+                    {
+                        // Closing the owned process releases the pending pipe read.
+                        // Observe any resulting error without retaining its output.
+                        GC.KeepAlive(read.ContinueWith(delegate(Task<int> finished) { GC.KeepAlive(finished.Exception); },
+                            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                            TaskScheduler.Default));
+                        token.ThrowIfCancellationRequested();
+                        throw new OperationCanceledException(token);
+                    }
+                    int count = await read.ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    ended = count == 0;
+                    length = decoder.GetChars(bytes, 0, count, characters, 0, ended);
+                    position = 0;
+                }
+            }
         }
 
         private static void ValidateAccount(string data, JavaScriptSerializer json)

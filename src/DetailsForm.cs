@@ -11,6 +11,7 @@ namespace CodexQuotaLite
   private string plan;
   private readonly Panel cards = new Panel();
   private readonly Label status = new Label(), updated = new Label();
+  private readonly ToolTip statusTip = new ToolTip();
   private readonly LinkLabel github = new LinkLabel();
   private readonly Label resetNotice = new Label();
   private readonly LinkLabel resetSource = new LinkLabel();
@@ -25,6 +26,9 @@ namespace CodexQuotaLite
   private string lastSelectedId, lastMessage, lastSettingsMessage, themeMode;
   public event EventHandler RefreshRequested;
   public event EventHandler SettingsChanged;
+  internal event EventHandler KeyboardInteraction;
+  internal event EventHandler PointerInteraction;
+  internal bool KeyboardInteractionFocused { get { return ContainsFocus || windowChoice.DropDownFocused; } }
   public string SelectedLanguage { get { return UiText.Language; } }
   public string SelectedThemeMode { get { return themeMode; } }
   public string SelectedWindowId { get { return windowChoice.SelectedIndex >= 0 && windowChoice.SelectedIndex < windows.Count ? windows[windowChoice.SelectedIndex].Id : null; } }
@@ -74,15 +78,36 @@ namespace CodexQuotaLite
    };
    status.ForeColor=Theme.Muted;updated.ForeColor=Theme.Muted;status.AutoEllipsis=false;
    status.TextAlign=ContentAlignment.MiddleLeft;updated.TextAlign=ContentAlignment.MiddleLeft;
+   statusTip.OwnerDraw=true;statusTip.ShowAlways=true;statusTip.InitialDelay=300;statusTip.ReshowDelay=100;statusTip.AutoPopDelay=30000;
+   statusTip.BackColor=Theme.Card;statusTip.ForeColor=Theme.Text;
+   statusTip.Popup+=StatusTipPopup;statusTip.Draw+=StatusTipDraw;
+   windowChoice.KeyboardInteraction+=delegate{NotifyKeyboardInteraction();};
+   windowChoice.PointerInteraction+=delegate{NotifyPointerInteraction();};
    windowChoice.BackColor=Theme.Card;windowChoice.ForeColor=Theme.Text;
    Controls.AddRange(new Control[]{cards,close,refresh,status,updated,languageChoice,themeChoice,windowChoice,github,version,resetNotice,resetSource});
+   foreach(Control control in Controls)control.MouseDown+=delegate{NotifyPointerInteraction();};
    windowChoice.SelectedIndexChanged+=delegate{if(!binding&&SettingsChanged!=null)SettingsChanged(this,EventArgs.Empty);};
    ApplyScale(100);SetState(null,null,false,false,null,null);
   }
   private static void SetupButton(Button button){button.FlatStyle=FlatStyle.Flat;button.FlatAppearance.BorderColor=Theme.Border;button.FlatAppearance.MouseOverBackColor=Theme.Border;button.FlatAppearance.MouseDownBackColor=Theme.Border;button.BackColor=Theme.Card;button.ForeColor=Theme.Text;button.Cursor=Cursors.Hand;}
+  private void NotifyKeyboardInteraction(){if(KeyboardInteraction!=null)KeyboardInteraction(this,EventArgs.Empty);}
+  private void NotifyPointerInteraction(){if(PointerInteraction!=null)PointerInteraction(this,EventArgs.Empty);}
+  private static TextFormatFlags StatusTipFlags { get { return TextFormatFlags.Left|TextFormatFlags.Top|TextFormatFlags.WordBreak|TextFormatFlags.TextBoxControl|TextFormatFlags.NoPrefix|TextFormatFlags.NoPadding; } }
+  private void StatusTipPopup(object sender,PopupEventArgs e)
+  {
+   int width=Math.Max(1,Math.Min((int)(360*Math.Max(1,scale)),Screen.FromControl(status).WorkingArea.Width-24));
+   Size size=TextRenderer.MeasureText(statusTip.GetToolTip(status),status.Font,new Size(width,Int32.MaxValue),StatusTipFlags);
+   e.ToolTipSize=new Size(size.Width+20,size.Height+16);
+  }
+  private void StatusTipDraw(object sender,DrawToolTipEventArgs e)
+  {
+   e.Graphics.Clear(Theme.Card);using(Pen border=new Pen(Theme.Border))e.Graphics.DrawRectangle(border,0,0,e.Bounds.Width-1,e.Bounds.Height-1);
+   TextRenderer.DrawText(e.Graphics,e.ToolTipText,status.Font,new Rectangle(10,8,Math.Max(1,e.Bounds.Width-20),Math.Max(1,e.Bounds.Height-16)),Theme.Text,StatusTipFlags);
+  }
   internal void SetTheme(string mode)
   {
    Theme.Apply(mode);themeMode=Theme.Mode;
+   statusTip.BackColor=Theme.Card;statusTip.ForeColor=Theme.Text;
    BackColor=Theme.Background;cards.BackColor=Theme.Background;
    foreach(Control control in Controls){control.BackColor=Theme.Background;control.ForeColor=Theme.Text;}
    foreach(Button button in new[]{close,refresh,languageChoice,themeChoice})SetupButton(button);
@@ -148,13 +173,13 @@ namespace CodexQuotaLite
    windowChoice.SelectedIndex=windows.FindIndex(delegate(QuotaWindow w){return w.Id==selectedId;});windowChoice.Enabled=windows.Count>0;
    for(int i=0;i<windows.Count;i++){((UiQuotaCard)cards.Controls[i]).SetState(windows[i],stale,windows[i].Id==selectedId);}
    binding=false;refresh.Enabled=!busy;refresh.Text=busy?UiText.T("刷新中","Loading"):UiText.T("立即刷新","Refresh");
-   status.Text=UiText.T("额度每5分钟自动刷新","Every 5 min");
    updated.Text=snapshot==null?UiText.T("尚未更新","Not updated"):UiText.T("更新于 ","Updated ")+snapshot.FetchedAtUtc.ToLocalTime().ToString("HH:mm:ss");
    string text=busy?UiText.T("正在读取 Codex 账号套餐与额度…","Reading your Codex plan and usage…"):!String.IsNullOrEmpty(message)?UiText.Error(message):snapshot==null?UiText.T("等待获取额度。请先在 Codex 中登录。","Waiting for usage. Sign in to Codex first."):stale?UiText.T("上次结果已过期，请刷新后查看。","The previous result is out of date. Please refresh."):String.Empty;
    if(!String.IsNullOrEmpty(settingsMessage))text=UiText.Error(settingsMessage)+" "+text;
    bool problem=!String.IsNullOrEmpty(message)||!String.IsNullOrEmpty(settingsMessage)||stale;
    status.Text=busy?UiText.T("正在刷新…","Refreshing…"):problem?UiText.T("刷新异常","Refresh issue"):snapshot==null?UiText.T("等待获取额度","Waiting for usage"):UiText.T("额度每5分钟自动刷新","Every 5 min");
    status.ForeColor=problem?Theme.Warning:Theme.Muted;status.AccessibleDescription=text;
+   statusTip.SetToolTip(status,text);status.Cursor=String.IsNullOrEmpty(text)?Cursors.Default:Cursors.Help;
    cards.AccessibleDescription=UiText.T("额度窗口数量：","Usage windows: ")+windows.Count;
    if(Visible&&anchor!=null&&!anchor.IsDisposed)RepositionAnchored();
    else{FitToWorkingArea(Screen.FromRectangle(Bounds).WorkingArea);Bounds=Theme.Clamp(Bounds,Screen.FromRectangle(Bounds).WorkingArea);}Invalidate();
@@ -182,10 +207,12 @@ namespace CodexQuotaLite
    if(cards.Controls.Count==0)Theme.Write(g,UiText.T("额度信息将在读取成功后显示","Usage appears after a successful refresh"),30,94,300,42,11,Theme.Muted,false,scale);
   }
   public void Shutdown(){quitting=true;Close();}
+  protected override bool ProcessCmdKey(ref Message msg,Keys keyData){NotifyKeyboardInteraction();if((keyData&Keys.KeyCode)==Keys.Escape){Hide();return true;}return base.ProcessCmdKey(ref msg,keyData);}
+  protected override void Dispose(bool disposing){if(disposing)statusTip.Dispose();base.Dispose(disposing);}
   protected override void OnVisibleChanged(EventArgs e){if(!Visible&&windowChoice!=null)windowChoice.CloseDropDown();base.OnVisibleChanged(e);}
   protected override void OnLocationChanged(EventArgs e){if(windowChoice!=null)windowChoice.CloseDropDown();base.OnLocationChanged(e);}
   protected override void OnFormClosing(FormClosingEventArgs e){if(!quitting&&e.CloseReason==CloseReason.UserClosing){e.Cancel=true;Hide();}base.OnFormClosing(e);}
-  protected override void OnKeyDown(KeyEventArgs e){base.OnKeyDown(e);if(e.KeyCode==Keys.Escape){Hide();e.Handled=true;}}
+  protected override void OnKeyDown(KeyEventArgs e){NotifyKeyboardInteraction();base.OnKeyDown(e);if(e.KeyCode==Keys.Escape){Hide();e.Handled=true;}}
  }
  internal sealed class UiQuotaCard : Control
  {

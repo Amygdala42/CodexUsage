@@ -10,9 +10,9 @@ CodexUsage reads account and quota information through the local Codex app-serve
 
 ## 公共重置公告 / Public reset announcements
 
-应用直接请求 `https://codex-resets.com/api/v1/status`，通常每15分钟检查一次，并遵守缓存及重试间隔。不会发送账号、额度或登录凭据；该网站会收到普通网络请求信息，例如IP地址和应用User-Agent。点击来源通过浏览器打开公告原文，通常为X帖子。公告不能确认个人账号是否已获得重置。
+应用直接请求 `https://codex-resets.com/api/v1/status`。自动请求至少间隔15分钟，并遵守更长的缓存及重试间隔；点击详情或菜单的“立即刷新”会跳过本地等待，立即向服务端重新验证公告，已有请求进行中时不重复发送。不会发送账号、额度或登录凭据；该网站会收到普通网络请求信息，例如IP地址和应用User-Agent。点击来源通过浏览器打开公告原文，通常为X帖子。公告不能确认个人账号是否已获得重置。
 
-The app requests the public Codex Resets API, normally every 15 minutes, respecting cache and retry intervals. No account, quota or credential data is sent. The site receives ordinary connection information such as your IP address and the app User-Agent. Source links open the original announcement, usually on X, in your browser. These announcements do not confirm a reset for your account.
+The app requests the public Codex Resets API. Automatic requests are at least 15 minutes apart and respect longer cache and retry intervals. Refresh from details or the menu skips the local wait and immediately revalidates the announcement with the server, without duplicating an in-flight request. No account, quota or credential data is sent. The site receives ordinary connection information such as your IP address and the app User-Agent. Source links open the original announcement, usually on X, in your browser. These announcements do not confirm a reset for your account.
 
 ## 本地文件 / Local files
 

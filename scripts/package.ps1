@@ -6,13 +6,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'package-helpers.ps1')
 $outputRoot = Join-Path $repositoryRoot 'output'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
-try {
-    # Keep the lock file; deleting it after releasing a handle creates a race with
-    # the next caller. The exclusive handle serializes builds as well as numbering.
-    $packageLock = [IO.File]::Open((Join-Path $outputRoot '.package.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-} catch {
-    throw ('Cannot acquire the package lock. Another package may be running, or output is not writable. ' + $_.Exception.Message)
-}
+$operation = Enter-RepositoryOperation $repositoryRoot
 $batchRoot = $null
 $manifest = $null
 function Save-Manifest {
@@ -66,7 +60,9 @@ try {
     }
     $manifest.build.status = 'running'
     Save-Manifest
-    Invoke-PackageStep (Join-Path $PSScriptRoot 'build.ps1') (Join-Path $batchRoot 'build.log')
+    Invoke-PackageStep (Join-Path $PSScriptRoot 'build.ps1') (Join-Path $batchRoot 'build.log') @{ OperationLock = $operation.Handle }
+    $executable = Join-Path $repositoryRoot 'build/app/CodexUsage.exe'
+    $builtExecutableHash = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash
     $manifest.build.status = 'passed'
     $manifest.phase = 'tests'
     Save-Manifest
@@ -76,7 +72,7 @@ try {
     } else {
         $manifest.tests.status = 'running'
         Save-Manifest
-        Invoke-PackageStep (Join-Path $PSScriptRoot 'test.ps1') (Join-Path $batchRoot 'tests.log') @{ Suite = 'All' }
+        Invoke-PackageStep (Join-Path $PSScriptRoot 'test.ps1') (Join-Path $batchRoot 'tests.log') @{ Suite = 'All'; OperationLock = $operation.Handle }
         $manifest.tests.status = 'passed'
     }
     $manifest.phase = 'package'
@@ -86,12 +82,17 @@ try {
         throw 'Packaging inputs changed during the build or tests. Run a new batch from stable sources.'
     }
 
-    $executable = Join-Path $repositoryRoot 'build/app/CodexUsage.exe'
-    $version = [Reflection.AssemblyName]::GetAssemblyName($executable).Version.ToString()
-    $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($executable).FileVersion
-    if ($version -ne $fileVersion) { throw 'Executable assembly and file versions do not match.' }
+    $deliveredExecutable = Join-Path $batchRoot 'CodexUsage.exe'
+    Copy-Item -LiteralPath $executable -Destination $deliveredExecutable
+    if ((Get-FileHash -LiteralPath $deliveredExecutable -Algorithm SHA256).Hash -ne $builtExecutableHash -or
+        (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ne $builtExecutableHash) {
+        throw 'Copied executable does not match the executable built and tested for this batch.'
+    }
+    $version = [Reflection.AssemblyName]::GetAssemblyName($deliveredExecutable).Version.ToString()
+    $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($deliveredExecutable).FileVersion
+    $expectedVersion = ([xml](Get-Content -LiteralPath (Join-Path $repositoryRoot 'src/app.manifest') -Raw)).assembly.assemblyIdentity.version
+    if ($version -ne $fileVersion -or $version -ne $expectedVersion) { throw 'Copied executable assembly, file and source manifest versions do not match.' }
     $manifest.version = $version
-    Copy-Item -LiteralPath $executable -Destination (Join-Path $batchRoot 'CodexUsage.exe')
     foreach ($name in @('LICENSE', 'THIRD_PARTY_NOTICES.md')) {
         Copy-Item -LiteralPath (Join-Path $repositoryRoot $name) -Destination (Join-Path $batchRoot $name)
     }
@@ -129,6 +130,14 @@ SHA256SUMS.txt and manifest.json beside the download ZIP describe this delivery.
         $checksumLines += $hash + '  ' + $name
     }
     [IO.File]::WriteAllText((Join-Path $batchRoot 'SHA256SUMS.txt'), (($checksumLines -join [Environment]::NewLine) + [Environment]::NewLine), [Text.Encoding]::ASCII)
+    if ((Get-FileHash -LiteralPath $deliveredExecutable -Algorithm SHA256).Hash -ne $builtExecutableHash -or
+        (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ne $builtExecutableHash) {
+        throw 'Executable changed while final artifacts were being packaged.'
+    }
+    $currentInputs = @(Get-PackageInputs $repositoryRoot)
+    if (($manifest.source.inputs | ConvertTo-Json -Compress) -ne ($currentInputs | ConvertTo-Json -Compress)) {
+        throw 'Packaging inputs changed during final artifact creation. Run a new batch from stable sources.'
+    }
     $manifest.status = 'succeeded'
     $manifest.phase = 'complete'
     $manifest.finishedAt = (ConvertTo-PackageTime ([DateTimeOffset]::UtcNow)).ToString('o')
@@ -146,5 +155,5 @@ SHA256SUMS.txt and manifest.json beside the download ZIP describe this delivery.
     }
     throw
 } finally {
-    $packageLock.Dispose()
+    Exit-RepositoryOperation $operation
 }

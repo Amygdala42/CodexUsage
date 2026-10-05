@@ -68,9 +68,9 @@ namespace CodexQuotaLite
             catch (InvalidOperationException) { }
             catch (FormatException) { }
         }
-        internal async Task RefreshAsync(CancellationToken token)
+        internal async Task RefreshAsync(CancellationToken token, bool force = false)
         {
-            if (running || token.IsCancellationRequested || DateTimeOffset.UtcNow < nextRequest) return;
+            if (running || token.IsCancellationRequested || (!force && DateTimeOffset.UtcNow < nextRequest)) return;
             running = true;
             DateTimeOffset previousRequest = nextRequest;
             nextRequest = DateTimeOffset.UtcNow.AddMinutes(15);
@@ -83,6 +83,15 @@ namespace CodexQuotaLite
                     request.Timeout = 10000; request.ReadWriteTimeout = 10000;
                     request.AllowAutoRedirect = false;
                     request.UserAgent = "CodexUsage/" + typeof(ResetFeed).Assembly.GetName().Version.ToString(3);
+                    // Explicit refresh revalidates now; automatic requests keep the
+                    // existing freshness/retry schedule and HTTP cache behavior.
+                    if (force)
+                    {
+                        // Bypass the Framework cache so it cannot remove our no-cache
+                        // header when there is no entry in its own HTTP cache.
+                        request.CachePolicy = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.BypassCache);
+                        request.Headers[HttpRequestHeader.CacheControl] = "no-cache";
+                    }
                     if (etag != null) request.Headers[HttpRequestHeader.IfNoneMatch] = etag;
                     using (token.Register(request.Abort))
                     {

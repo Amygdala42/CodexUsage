@@ -1,28 +1,31 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'Stacking', 'Package', 'All')][string]$Suite = 'Domain',
-    [switch]$BuildOnly
+    [ValidateSet('Domain', 'Bridge', 'ResetFeed', 'Theme', 'Layout', 'Stacking', 'UiBehavior', 'Package', 'All')][string]$Suite = 'Domain',
+    [switch]$BuildOnly,
+    [Parameter(DontShow = $true)][IO.FileStream]$OperationLock
 )
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$sourceRoot = Join-Path $repositoryRoot 'src'
-$testRoot = Join-Path $repositoryRoot 'tests'
-$outputRoot = Join-Path $repositoryRoot 'build/tests'
-$compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
-    throw 'The Windows x64 .NET Framework compiler was not found. See docs/BUILD.md.'
-}
-New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+. (Join-Path $PSScriptRoot 'package-helpers.ps1')
+$operation = Enter-RepositoryOperation $repositoryRoot $OperationLock
 $previousTemp = $env:TEMP
 $previousTmp = $env:TMP
-function Build-Check([string]$Name, [string[]]$Inputs, [string[]]$References = @()) {
-    $destination = Join-Path $outputRoot ($Name + '.exe')
-    & $compiler /nologo /codepage:65001 /langversion:5 /warnaserror+ /target:exe /platform:x64 "/out:$destination" /r:System.Web.Extensions.dll @References @Inputs
-    if ($LASTEXITCODE -ne 0) { throw ('Test compilation failed: ' + $Name) }
-    return $destination
-}
 try {
+    $sourceRoot = Join-Path $repositoryRoot 'src'
+    $testRoot = Join-Path $repositoryRoot 'tests'
+    $outputRoot = Join-Path $repositoryRoot 'build/tests'
+    $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+    if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+        throw 'The Windows x64 .NET Framework compiler was not found. See docs/BUILD.md.'
+    }
+    New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+    function Build-Check([string]$Name, [string[]]$Inputs, [string[]]$References = @()) {
+        $destination = Join-Path $outputRoot ($Name + '.exe')
+        & $compiler /nologo /codepage:65001 /langversion:5 /warnaserror+ /target:exe /platform:x64 "/out:$destination" /r:System.Web.Extensions.dll @References @Inputs
+        if ($LASTEXITCODE -ne 0) { throw ('Test compilation failed: ' + $Name) }
+        return $destination
+    }
     $env:TEMP = $outputRoot
     $env:TMP = $outputRoot
     if ($Suite -eq 'Domain' -or $Suite -eq 'All') {
@@ -72,6 +75,14 @@ try {
             if ($LASTEXITCODE -ne 0) { throw ('Taskbar stacking checks failed with exit code ' + $LASTEXITCODE) }
         }
     }
+    if ($Suite -eq 'UiBehavior' -or $Suite -eq 'All') {
+        $inputs = @('InteractionState.cs','TaskbarPlacement.cs','TaskbarStacking.cs','DetailsForm.cs','DetailsLayout.cs','UiDarkControls.cs','WidgetForm.cs','WidgetRenderer.cs','LayeredSurface.cs','Theme.cs','UiText.cs','QuotaModels.cs','AppSettings.cs','AppPaths.cs','ResetFeed.cs') | ForEach-Object { Join-Path $sourceRoot $_ }
+        $uiBehavior = Build-Check 'UiBehaviorTests' (@((Join-Path $testRoot 'UiBehaviorTests.cs')) + $inputs) @('/r:System.Drawing.dll','/r:System.Windows.Forms.dll','/r:Accessibility.dll')
+        if (-not $BuildOnly) {
+            & $uiBehavior
+            if ($LASTEXITCODE -ne 0) { throw ('UI behavior checks failed with exit code ' + $LASTEXITCODE) }
+        }
+    }
     if (($Suite -eq 'Package' -or $Suite -eq 'All') -and -not $BuildOnly) {
         & (Join-Path $testRoot 'PackageTests.ps1') -OutputRoot (Join-Path $outputRoot 'package')
     }
@@ -79,4 +90,5 @@ try {
 } finally {
     $env:TEMP = $previousTemp
     $env:TMP = $previousTmp
+    Exit-RepositoryOperation $operation
 }

@@ -111,6 +111,62 @@ internal static class ResetFeedTests
         Run("short Cache-Control preserves the minimum polling interval", delegate {
             ResetFeed feed = NewSuccessfulFeed(Headers("Cache-Control", "max-age=60")); CheckDelay(feed, 900);
         });
+        Run("manual refresh replaces a four-hour cached announcement immediately", delegate {
+            string path = CachePath(); ResetFeed feed = new ResetFeed(path);
+            Respond(feed, 200, Good, Headers("Cache-Control", "max-age=14400"));
+            string newer = Good.Replace("2026-09-12T08:09:17Z", "2026-10-02T21:18:48Z");
+            string request = Respond(feed, 200, newer, Headers("Cache-Control", "max-age=14400"), true);
+            Check(feed.Latest.Time == new DateTimeOffset(2026, 10, 2, 21, 18, 48, TimeSpan.Zero) &&
+                !feed.Cached && !feed.Failed && File.ReadAllText(path) == newer, "manual refresh publishes and persists the new announcement");
+            Check(request.Contains("Cache-Control: no-cache"), "manual request asks HTTP caches to revalidate; received headers: " + request);
+            CheckDelay(feed, 14400);
+        });
+        Run("manual refresh revalidates the ETag and accepts an unchanged announcement", delegate {
+            var headers = Headers("ETag", "\"manual-v1\""); headers.Add("Cache-Control", "max-age=14400");
+            ResetFeed feed = NewSuccessfulFeed(headers);
+            string request = Respond(feed, 304, "", null, true);
+            Check(request.Contains("If-None-Match: \"manual-v1\"") && request.Contains("Cache-Control: no-cache"), "manual conditional request reaches the server; received headers: " + request);
+            Check(!feed.Failed && !feed.Cached && feed.Latest.Type == "regular", "manual 304 retains a validated announcement");
+            CheckDelay(feed, 14400);
+        });
+        Run("failed manual refresh keeps the previous announcement and permits an explicit retry", delegate {
+            ResetFeed feed = NewSuccessfulFeed(Headers("Cache-Control", "max-age=14400"));
+            Respond(feed, 503, "", Headers("Retry-After", "3600"), true);
+            Check(feed.Failed && feed.Cached && feed.Latest.Type == "regular", "manual failure retains the last announcement");
+            int before = Factory.Count; feed.RefreshAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Check(Factory.Count == before, "automatic retry still obeys Retry-After");
+            Respond(feed, 200, Good.Replace("regular", "banked"), null, true);
+            Check(!feed.Failed && !feed.Cached && feed.Latest.Type == "banked", "another explicit refresh retries immediately");
+        });
+        Run("pre-cancelled manual refresh does not request or shorten automatic caching", delegate {
+            ResetFeed feed = NewSuccessfulFeed(Headers("Cache-Control", "max-age=14400")); int before = Factory.Count;
+            using (var cancel = new CancellationTokenSource()) { cancel.Cancel(); Refresh(feed, cancel.Token, true).GetAwaiter().GetResult(); }
+            Check(Factory.Count == before && !feed.Failed && !feed.Cached, "pre-cancelled manual refresh leaves state intact");
+            CheckDelay(feed, 14400);
+        });
+        Run("manual refresh during an in-flight request does not send a duplicate", delegate {
+            ResetFeed feed = new ResetFeed(CachePath()); int before = Factory.Count;
+            using (var server = new LocalServer(200, Good, null, false, Stall.Headers)) {
+                Factory.Target = server.Url; Task first = feed.RefreshAsync(CancellationToken.None);
+                Check(server.Accepted.WaitOne(3000), "automatic request reached server");
+                Refresh(feed, CancellationToken.None, true).GetAwaiter().GetResult();
+                Check(Factory.Count == before + 1, "manual click shares the in-flight request");
+                server.Release.Set(); Complete(first, 5000); Check(!feed.Failed, "in-flight request completes");
+            }
+        });
+        Run("cancelling a manual request restores the automatic cache interval", delegate {
+            ResetFeed feed = NewSuccessfulFeed(Headers("Cache-Control", "max-age=14400"));
+            using (var server = new LocalServer(200, Good, null, false, Stall.Headers))
+            using (var cancel = new CancellationTokenSource()) {
+                Factory.Target = server.Url; Task task = Refresh(feed, cancel.Token, true);
+                Check(server.Accepted.WaitOne(3000), "manual request reached cancellation point");
+                cancel.Cancel(); Complete(task, 3000);
+                Check(!feed.Failed && !feed.Cached, "manual cancellation leaves healthy state intact");
+            }
+            CheckDelay(feed, 14400);
+            Respond(feed, 200, Good.Replace("regular", "banked"), null, true);
+            Check(!feed.Failed && feed.Latest.Type == "banked", "manual refresh remains usable after cancellation");
+        });
         Run("invalid response does not commit its long Cache-Control lifetime", delegate {
             ResetFeed feed = Seed("bad-cache-policy"); Respond(feed, 200, "broken", Headers("Cache-Control", "max-age=86400"));
             Check(feed.Failed && feed.Cached, "invalid response fails"); CheckDelay(feed, 900);
@@ -194,9 +250,13 @@ internal static class ResetFeedTests
     private static ResetFeed Seed(string label) { string path = CachePath(); File.WriteAllText(path, Good); return new ResetFeed(path); }
     private static string CachePath() { string directory = Path.Combine(root, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory); return Path.Combine(directory, "cache.json"); }
     private static Dictionary<string, string> Headers(string name, string value) { return new Dictionary<string, string> { { name, value } }; }
-    private static string Respond(ResetFeed feed, int status, string body, Dictionary<string, string> headers)
-    { using (var server = new LocalServer(status, body, headers, false, Stall.None)) { Send(feed, server); return server.Request; } }
-    private static void Send(ResetFeed feed, LocalServer server) { Factory.Target = server.Url; Complete(feed.RefreshAsync(CancellationToken.None), 5000); Check(server.HeadersSent.WaitOne(1000), "fixture response was sent"); }
+    private static string Respond(ResetFeed feed, int status, string body, Dictionary<string, string> headers, bool force = false)
+    { using (var server = new LocalServer(status, body, headers, false, Stall.None)) { Send(feed, server, force); return server.Request; } }
+    private static void Send(ResetFeed feed, LocalServer server, bool force = false) { Factory.Target = server.Url; Complete(Refresh(feed, CancellationToken.None, force), 5000); Check(server.HeadersSent.WaitOne(1000), "fixture response was sent"); }
+    private static Task Refresh(ResetFeed feed, CancellationToken token, bool force)
+    {
+        return feed.RefreshAsync(token, force);
+    }
     private static void Complete(Task task, int milliseconds) { Check(((IAsyncResult)task).AsyncWaitHandle.WaitOne(milliseconds), "refresh completion bound"); task.GetAwaiter().GetResult(); }
     // Move only the private scheduling timestamp: a test clock without product-only hooks.
     // Assertions below observe whether a real refresh/request happens, not field equality.

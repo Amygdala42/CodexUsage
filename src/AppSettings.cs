@@ -47,7 +47,17 @@ namespace CodexQuotaLite
                 }
 
                 string json = File.ReadAllText(filePath, Encoding.UTF8);
-                AppSettings settings = new JavaScriptSerializer().Deserialize<AppSettings>(json);
+                AppSettings settings;
+                try
+                {
+                    settings = new JavaScriptSerializer().Deserialize<AppSettings>(json);
+                }
+                catch (Exception)
+                {
+                    // Framework type converters can wrap format/overflow errors in
+                    // a plain Exception. A settings payload must never block startup.
+                    return new AppSettings();
+                }
                 return Sanitize(settings);
             }
             catch (IOException)

@@ -77,11 +77,16 @@ namespace CodexQuotaLite
             StringBuilder className = new StringBuilder(64);
             GetClassName(foreground, className, className.Capacity);
             string kind = className.ToString();
-            if (kind == "Shell_TrayWnd" || kind == "Progman" || kind == "WorkerW") return false;
             NativeRect native;
             if (!GetWindowRect(foreground, out native)) return false;
-            Rectangle screen = Screen.FromRectangle(native.Rectangle).Bounds;
-            return CoversScreen(native.Rectangle, screen, IsZoomed(foreground));
+            Rectangle screen = Screen.FromHandle(widget).Bounds;
+            return ForegroundCoversWidgetScreen(native.Rectangle, screen, IsZoomed(foreground), kind);
+        }
+
+        internal static bool ForegroundCoversWidgetScreen(Rectangle window, Rectangle widgetScreen, bool maximized, string kind)
+        {
+            if (kind == "Shell_TrayWnd" || kind == "Progman" || kind == "WorkerW") return false;
+            return CoversScreen(window, widgetScreen, maximized);
         }
 
         internal static bool CoversScreen(Rectangle window, Rectangle screen, bool maximized)

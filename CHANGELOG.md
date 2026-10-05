@@ -1,5 +1,23 @@
 # Changelog
 
+## 未发布 / Unreleased — 2026-10-03 本地审查修复
+
+以下为未发布的源码修复，版本仍为 1.1.0；2026-10-02 发布的 v1.1.0 下载附件不包含这些修复。
+These unreleased source fixes retain version 1.1.0; the v1.1.0 download assets published on 2026-10-02 do not include them.
+
+- 点击详情或菜单的“立即刷新”会立即重新验证公共 reset 公告，保留自动请求的缓存与重试间隔，以及并发和取消保护。
+  Refresh from details or the menu immediately revalidates public reset news, preserving automatic cache/retry intervals and concurrent-request/cancellation protections.
+- 损坏设置中的字段类型或数值转换失败时回退默认配置，启动阶段统一处理异常；保留合法旧设置。
+  Fall back to defaults when settings contain invalid field types or numeric conversions, and handle startup errors consistently while preserving valid legacy settings.
+- Codex 响应采用有界流式读取，在收到换行前也能拒绝超大响应，保留分片 UTF-8、取消和超时处理。
+  Bound streamed Codex replies before a newline arrives, preserving fragmented UTF-8, cancellation and timeout handling.
+- 键盘操作详情时保持显示，恢复鼠标操作后沿用离开半秒收起；副屏全屏不再隐藏未被覆盖的浮条。
+  Keep details open during keyboard interaction, restore the half-second pointer-leave behavior on mouse use, and avoid hiding the widget for fullscreen content on a different display.
+- 详情刷新状态提供随主题绘制的完整错误提示；移除未使用的滚动面板和重复状态赋值。
+  Show complete error details in a themed status tooltip; remove the unused scroll panel and redundant status assignment.
+- 构建、测试和打包统一协调共享产物，交付时核对复制后的程序、输入与清单；新增针对性回归及 UiBehavior 套件。
+  Coordinate shared outputs across build, test and package commands, verify the copied executable and input manifest, and add targeted regressions plus the UiBehavior suite.
+
 ## 1.1.0 — 2026-10-02
 
 - 深色任务栏百分比保留原有近白色 `#E6EDF5`，同步恢复文档示意图。

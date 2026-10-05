@@ -23,6 +23,10 @@ The build uses C# 5, the Framework64 compiler, and system assemblies. No NuGet p
 
 Output: `build/app/CodexUsage.exe`, with the license and dependency notices embedded. This is a regenerable build directory, not a release archive.
 
+构建、测试和打包入口共用 `output/.package.lock`，同一仓库一次只允许一个独立写入任务；打包内部调用构建和测试时沿用已持有的锁。若提示另一个任务正在运行，请等待其结束后重试。锁文件保留在磁盘上是正常现象，是否占用由打开的文件句柄决定，不需手工删除锁文件。
+
+Build, test and package commands share `output/.package.lock`, allowing one independent writer per repository. Packaging reuses its held lock for nested build and test calls. If another command is running, wait for it to finish and retry. The lock file remains on disk; the open file handle determines ownership, so manual deletion is unnecessary.
+
 ## 按日期与批次打包 / Date-based delivery batches
 
 ```powershell

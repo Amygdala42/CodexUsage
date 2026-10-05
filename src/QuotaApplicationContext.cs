@@ -21,7 +21,7 @@ namespace CodexQuotaLite
         private readonly ContextMenuStrip menu;
         private readonly ToolStripMenuItem visibilityItem;
         private readonly ToolStripMenuItem refreshItem;
-        private readonly ToolStripMenuItem detailsItem;
+        private readonly UiKeyboardMenuItem detailsItem;
         private readonly ToolStripMenuItem appearanceItem;
         private readonly ToolStripMenuItem darkThemeItem;
         private readonly ToolStripMenuItem lightThemeItem;
@@ -47,6 +47,8 @@ namespace CodexQuotaLite
         private ForegroundMonitor foregroundMonitor;
         private TaskbarStackingQueue stackingQueue;
         private bool taskbarUpdateQueued;
+        private Point? previousPointer;
+        private bool keyboardDetailsRequest;
 
         public QuotaApplicationContext(IQuotaSource quotaSource, SettingsStore settingsStore, AppSettings appSettings, Action<Rectangle, Rectangle, Rectangle> observePlacement = null)
         {
@@ -70,7 +72,14 @@ namespace CodexQuotaLite
             details.TopMost = false;
             RestorePosition();
             widget.DetailRequested += delegate { ShowDetails(); };
-            details.RefreshRequested += async delegate { await RefreshAsync(); };
+            widget.KeyDown += delegate(object sender, KeyEventArgs e) {
+                if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space) keyboardDetailsRequest = true;
+            };
+            widget.MouseDown += delegate { keyboardDetailsRequest = false; };
+            details.KeyboardInteraction += delegate { hoverDismiss.KeyboardUsed(); };
+            details.PointerInteraction += delegate { hoverDismiss.PointerUsed(); };
+            details.VisibleChanged += delegate { if (!details.Visible) hoverDismiss.Reset(); };
+            details.RefreshRequested += async delegate { await RefreshAsync(true); };
             details.SettingsChanged += delegate { ApplySettings(); };
             widget.Shown += async delegate { await RefreshAsync(); };
             widget.FormClosing += delegate { Stop(); };
@@ -78,8 +87,9 @@ namespace CodexQuotaLite
             menu.BackColor = Theme.Card; menu.ForeColor = Theme.Text;
             menu.Renderer = new ToolStripProfessionalRenderer(new MenuColors());
             visibilityItem = new ToolStripMenuItem("隐藏浮条", null, delegate { ToggleWidget(); });
-            refreshItem = new ToolStripMenuItem("立即刷新", null, async delegate { await RefreshAsync(); });
-            detailsItem = new ToolStripMenuItem("查看用量详情", null, delegate { ShowDetails(); });
+            refreshItem = new ToolStripMenuItem("立即刷新", null, async delegate { await RefreshAsync(true); });
+            detailsItem = new UiKeyboardMenuItem("查看用量详情", delegate { ShowDetails(); });
+            detailsItem.KeyboardInvoked += delegate { keyboardDetailsRequest = true; };
             appearanceItem = new ToolStripMenuItem("外观");
             darkThemeItem = new ToolStripMenuItem("深色模式", null, delegate { ChangeTheme("dark"); });
             lightThemeItem = new ToolStripMenuItem("浅色模式", null, delegate { ChangeTheme("light"); });
@@ -93,6 +103,7 @@ namespace CodexQuotaLite
             menu.Items.Add(exitItem);
             ApplyMenuTheme(menu);
             menu.Opening += delegate { visibilityItem.Text = widgetEnabled ? UiText.T("隐藏额度条", "Hide widget") : UiText.T("显示额度条", "Show widget"); refreshItem.Enabled = !busy; };
+            menu.MouseDown += delegate { keyboardDetailsRequest = false; };
             widget.ContextMenuStrip = menu;
             menu.Closed += delegate { QueueTaskbarUpdate(); };
             details.Deactivate += delegate { QueueTaskbarUpdate(); };
@@ -101,7 +112,7 @@ namespace CodexQuotaLite
             tray.Icon = trayIcon;
             tray.Text = "Codex 额度小窗";
             tray.ContextMenuStrip = menu;
-            tray.DoubleClick += delegate { widgetEnabled = true; RestorePosition(); widget.Show(); ShowDetails(); };
+            tray.DoubleClick += delegate { keyboardDetailsRequest = false; widgetEnabled = true; RestorePosition(); widget.Show(); ShowDetails(); };
             tray.Visible = true;
             refreshTimer = new System.Windows.Forms.Timer();
             refreshTimer.Interval = 5 * 60 * 1000;
@@ -116,9 +127,11 @@ namespace CodexQuotaLite
             hoverTimer.Interval = 100;
             hoverTimer.Tick += delegate {
                 Point pointer = Cursor.Position;
+                if (previousPointer.HasValue && previousPointer.Value != pointer) hoverDismiss.PointerUsed();
+                previousPointer = pointer;
                 widget.TrackHintPointer(pointer);
                 bool inside = (widget.Visible && widget.Bounds.Contains(pointer)) || details.ContainsPointer(pointer);
-                if (hoverDismiss.ShouldDismiss(DateTimeOffset.UtcNow, details.Visible, inside, menu.Visible)) details.Hide();
+                if (hoverDismiss.ShouldDismiss(DateTimeOffset.UtcNow, details.Visible, inside, menu.Visible, details.KeyboardInteractionFocused)) details.Hide();
             };
             refreshTimer.Start();
             clockTimer.Start();
@@ -207,7 +220,11 @@ namespace CodexQuotaLite
             widgetEnabled = true;
             if (!widget.Visible) widget.Show();
             Render();
+            hoverDismiss.Reset();
+            previousPointer = Cursor.Position;
             details.ShowAnchored(widget);
+            if (keyboardDetailsRequest) hoverDismiss.KeyboardUsed();
+            keyboardDetailsRequest = false;
         }
 
         private void ToggleWidget()
@@ -271,10 +288,10 @@ namespace CodexQuotaLite
             Render();
         }
 
-        private async Task RefreshAsync()
+        private async Task RefreshAsync(bool forceReset = false)
         {
             if (busy || stopping) return;
-            RefreshResetAnnouncement();
+            RefreshResetAnnouncement(forceReset);
             busy = true;
             Render();
             try
@@ -294,9 +311,9 @@ namespace CodexQuotaLite
             finally { busy = false; if (!stopping) Render(); }
         }
 
-        private async void RefreshResetAnnouncement()
+        private async void RefreshResetAnnouncement(bool force)
         {
-            await resetFeed.RefreshAsync(cancellation.Token);
+            await resetFeed.RefreshAsync(cancellation.Token, force);
             if (!stopping) details.SetResetFeed(resetFeed);
         }
 

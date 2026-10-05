@@ -1,5 +1,39 @@
 # 测试 / Testing
 
+## 2026-10-05 源码同步前验证 / Source synchronization checks
+
+在 PowerShell 7.6.5、Windows x64 和系统 .NET Framework 编译器下重新构建成功，完整 `scripts/test.ps1 -Suite All` 一次运行 **320 项通过、0 失败**：Domain 40、Bridge 20、ResetFeed 52、Theme 27、Layout 121、Stacking 20、UiBehavior 18、Package 22。本轮未复现此前 Bridge 准备阶段超时，不能据此认定其根因已修复。维护文档本地链接与 Git 差异检查通过。
+
+A fresh build succeeded under PowerShell 7.6.5 on Windows x64 with the system .NET Framework compiler. A single complete All run passed **320 checks, zero failures**, with the suite counts above. The earlier Bridge setup timeout did not recur; its cause is not claimed fixed. Maintained local documentation links and Git whitespace checks passed.
+
+本次验证针对当前源码；未生成或替换 GitHub Release 附件，也未切换用户运行副本。版本仍为 1.1.0.0，真实 GUI、在线账号及多屏幕/DPI 验收范围未扩大。本地证据位于 `records/publishing/source-update-2026-10-05/`，不提交至源码仓库。
+
+This validates current source, without replacing GitHub Release assets or the user's running copy. Version remains 1.1.0.0; live GUI, account and physical multi-display/DPI acceptance were not expanded. Evidence is retained locally under the publishing records directory and excluded from source control.
+
+## 2026-10-03 手动刷新 reset 公告 / Manual reset news refresh
+
+“立即刷新”的详情及菜单入口现在立即查询公告；自动入口继续遵守原缓存与重试间隔。新增离线 HTTP 回归覆盖四小时缓存绕过、实际 `no-cache` 请求头、ETag/304、失败后显式重试、并发合并和取消后恢复自动间隔。ResetFeed **52 项通过、0 失败**；重新构建成功，完整 All 重跑 **320 项通过、0 失败**（Domain 40、Bridge 20、ResetFeed 52、Theme 27、Layout 121、Stacking 20、UiBehavior 18、Package 22）。
+
+Details and menu Refresh now immediately query reset news while automatic requests retain existing cache/retry scheduling. Offline HTTP regressions cover four-hour cache bypass, the actual `no-cache` header, ETag/304, explicit retry after failure, in-flight deduplication and cancellation restoring automatic scheduling. ResetFeed passed **52 checks**; the build succeeded and the complete All rerun passed **320 checks, zero failures**.
+
+首次 All 在 Bridge 的 `cancellation interrupts stalled server and closes owned process` 准备阶段等待模拟服务 `hang` 标记超时（19 通过、1 失败），尚未执行取消动作；无代码改动后完整重跑通过，根因未确认。本次初始实现另被 HTTP 抓包测试检出 Framework `Revalidate` 移除 `no-cache` 头，改用 `BypassCache` 并显式设置请求头后通过。原始失败、诊断和最终日志保存在 `records/verification/manual-reset-refresh-2026-10-03/`。未验证真实 GUI 点击或在线公告服务，未替换桌面运行副本；文件版本仍为 1.1.0.0。
+
+The first All attempt stopped at a Bridge setup timeout waiting for the fake server's `hang` marker before cancellation was invoked (19 passes, 1 failure). A full rerun without code changes passed; the cause remains unconfirmed. HTTP capture tests also detected that Framework `Revalidate` removed `no-cache`; using `BypassCache` with the explicit header passed. Original failures, diagnostics and final logs are retained in the local verification directory. Live GUI clicks and the public online service were not exercised, and the running desktop copy was not replaced. File version remains 1.1.0.0.
+
+## 2026-10-03 本地审查修复 / Local audit fixes
+
+在 PowerShell 7.6.5、Windows x64、系统 .NET Framework 编译器下重新构建成功，随后 `scripts/test.ps1 -Suite All` **314 项通过、0 失败**：Domain 40、Bridge 20、ResetFeed 46、Theme 27、Layout 121、Stacking 20、UiBehavior 18、Package 22。文件与程序集版本仍为 **1.1.0.0**，输出为 `build/app/CodexUsage.exe`。本轮未更新发行附件，也未替换正在运行的桌面副本。
+
+The local source rebuilt successfully under PowerShell 7.6.5 on Windows x64 with the system .NET Framework compiler. `scripts/test.ps1 -Suite All` then passed **314 checks, zero failures**: Domain 40, Bridge 20, ResetFeed 46, Theme 27, Layout 121, Stacking 20, UiBehavior 18 and Package 22. File and assembly versions remain **1.1.0.0**, with the executable at `build/app/CodexUsage.exe`. Published assets and the running desktop copy were not replaced.
+
+新增检查覆盖真实设置文件的类型转换错误、换行前超限响应、分片 UTF-8 与不同换行边界、键盘/鼠标收起状态、跨屏全屏判断、主题错误提示绘制、真实菜单按键预处理，以及构建/测试/打包互斥、异常释放和成品篡改拒绝。Package 日志里的预期失败批次属于负向测试，不代表套件失败。使用合成数据、模拟子进程、回环 HTTP 和隔离控件；未进行真实账号、原生窗口完整交互或多屏幕/DPI现场验收。
+
+New regressions exercise malformed setting field types through real isolated files, oversized replies before a newline, fragmented UTF-8 and line boundaries, keyboard/pointer dismissal, cross-display fullscreen geometry, themed error-tip drawing, actual menu-key preprocessing, shared build/test/package locking, failure cleanup and artifact-tampering rejection. Expected failed fixture batches in Package logs are negative test cases, not suite failures. Checks use synthetic data, fake child processes, loopback HTTP and isolated controls; live accounts, full native interaction and physical multi-display/DPI acceptance remain unverified.
+
+首轮针对性 Bridge 绿测曾出现一次 Dispose 用例握手未在 5 秒内到达等待阶段（19通过、1失败）。未放宽断言；下一轮 Bridge 20/0、自动超时后连续20次关闭诊断21/0及最终 All 均通过。该偶发现象未再复现，根因尚未确认，原失败日志保留。详细本地证据在 `records/verification/audit-fixes-2026-10-03/`，不随源码提交。
+
+The first targeted Bridge verification had one Dispose handshake miss its five-second setup deadline (19 passed, one failed). The assertion was not relaxed. The next Bridge run passed 20/0, a production-timeout followed by 20 consecutive Dispose probes passed 21/0, and integrated All passed. The intermittent setup delay did not recur; its root cause remains unconfirmed and the original failure log is retained. Local evidence is under `records/verification/audit-fixes-2026-10-03/` and is excluded from source commits.
+
 ## 1.1.0 — 2026-10-02
 
 正式发行候选 `output/2026-10-02/batch-008` 通过默认完整打包：构建成功，All **278 项通过、0 失败**（Domain 37、Bridge 14、ResetFeed 46、Theme 27、Layout 121、Stacking 20、Package 13），未跳过测试。程序的文件、程序集和应用清单版本统一为 **1.1.0.0**。打包测试夹具从应用清单读取版本，避免升版后仍引用旧版。
@@ -68,6 +102,7 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite Theme
 ./scripts/test.ps1 -Suite Layout
 ./scripts/test.ps1 -Suite Stacking
+./scripts/test.ps1 -Suite UiBehavior
 ./scripts/test.ps1 -Suite Package
 ./scripts/test.ps1 -Suite All
 
@@ -75,9 +110,9 @@ Tests use synthetic data and a fake server; no Codex sign-in is required.
 ./scripts/test.ps1 -Suite All -BuildOnly
 ```
 
-`All` 包含 Domain、Bridge、ResetFeed、Theme、Layout、Stacking 和 Package。`-BuildOnly` 只编译所选 C# 套件，不执行测试；Package 是 PowerShell 套件，指定 `-BuildOnly` 时跳过。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `build/tests/theme-render/`；Layout 将逐项字体测量写入 `build/tests/layout-compact/`。
+`All` 包含 Domain、Bridge、ResetFeed、Theme、Layout、Stacking、UiBehavior 和 Package。`-BuildOnly` 只编译所选 C# 套件，不执行测试；Package 是 PowerShell 套件，指定 `-BuildOnly` 时跳过。Bridge 包含真实 35 秒超时检查，ResetFeed 包含真实 HTTP 超时检查，请等待最终统计。Theme 将合成数据的真实绘图产物写入 `build/tests/theme-render/`；Layout 将逐项字体测量写入 `build/tests/layout-compact/`。UiBehavior 使用合成状态、显示器几何和隔离控件检查，不连接真实账号；它不等于原生窗口完整交互验收。
 
-`All` runs Domain, Bridge, ResetFeed, Theme, Layout, Stacking and Package. `-BuildOnly` compiles the selected C# suites without running tests; the PowerShell Package suite is skipped. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `build/tests/theme-render/`; Layout writes individual font measurements to `build/tests/layout-compact/`.
+`All` runs Domain, Bridge, ResetFeed, Theme, Layout, Stacking, UiBehavior and Package. `-BuildOnly` compiles the selected C# suites without running tests; the PowerShell Package suite is skipped. Bridge checks the real 35-second deadline, and ResetFeed exercises HTTP timeouts; wait for the final totals. Theme writes production-renderer bitmaps using synthetic data to `build/tests/theme-render/`; Layout writes individual font measurements to `build/tests/layout-compact/`. UiBehavior checks synthetic states, display geometry and isolated controls without a real account; it does not establish full native-window interaction acceptance.
 
 `scripts/package.ps1` 默认执行构建与 `All`，并将日志和执行状态保存在独立的 `output/YYYY-MM-DD/batch-NNN/`。`-SkipTests` 是显式跳过，不代表测试通过。目录迁移前的原始测试产物与记录保存在 `records/verification/`，发布核验在 `records/publishing/`；历史记录中的旧绝对路径保持原文，不作为当前命令入口。
 

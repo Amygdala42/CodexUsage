@@ -82,6 +82,67 @@ Check 'test compilation writes only to build/tests and restores temporary direct
     Assert-True (Test-Path -LiteralPath (Join-Path $fixture 'build/tests/DomainTests.exe')) 'Expected build/tests/DomainTests.exe.'
     Assert-True ($env:TEMP -eq $tempBefore -and $env:TMP -eq $tmpBefore) 'Test command must restore TEMP/TMP.'
 }
+foreach ($entry in @('build', 'test')) {
+    Check ($entry + ' refuses an active shared output lock before modifying outputs and releases on retry') {
+        $output = Join-Path $fixture 'output'
+        New-Item -ItemType Directory -Path $output -Force | Out-Null
+        $lock = [IO.File]::Open((Join-Path $output '.package.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $arguments = @{}
+        if ($entry -eq 'test') { $arguments = @{ Suite = 'Domain'; BuildOnly = $true } }
+        $exe = Join-Path $fixture $(if ($entry -eq 'build') { 'build/app/CodexUsage.exe' } else { 'build/tests/DomainTests.exe' })
+        $before = (Get-FileHash -LiteralPath $exe).Hash
+        try {
+            $rejected = $false
+            try { & (Join-Path $fixture ('scripts/' + $entry + '.ps1')) @arguments | Out-Null }
+            catch { $rejected = $_.Exception.Message -match 'lock' }
+            Assert-True $rejected 'The real entry must reject the shared lock, rather than write concurrently.'
+            Assert-True ((Get-FileHash -LiteralPath $exe).Hash -eq $before) 'Rejected entry must leave compiled output intact.'
+        } finally { $lock.Dispose() }
+        & (Join-Path $fixture ('scripts/' + $entry + '.ps1')) @arguments | Out-Null
+    }
+}
+Check 'a running real test entry prevents competing build and package and releases its lock' {
+    $root = New-Fixture 'running test with spaces'
+    foreach ($name in @('QuotaModels','QuotaParser','AppSettings','AppPaths','InteractionState','ResetFeed')) {
+        Write-Utf8 (Join-Path $root ('src/' + $name + '.cs')) '// Empty domain fixture dependency.'
+    }
+    Write-Utf8 (Join-Path $root 'tests/DomainTests.cs') @'
+using System;
+using System.IO;
+using System.Threading;
+internal static class DomainTests {
+    public static int Main() {
+        string root = AppDomain.CurrentDomain.BaseDirectory;
+        File.WriteAllText(Path.Combine(root, "operation-ready"), "ready");
+        for (int i = 0; i < 300; i++) {
+            if (File.Exists(Path.Combine(root, "release-operation"))) return 0;
+            Thread.Sleep(100);
+        }
+        return 2;
+    }
+}
+'@
+    $hostPath = (Get-Process -Id $PID).Path
+    $process = Start-Process -FilePath $hostPath -ArgumentList @('-NoProfile', '-File', ('"' + (Join-Path $root 'scripts/test.ps1') + '"'), '-Suite', 'Domain') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'child.log') -RedirectStandardError (Join-Path $root 'child-error.log')
+    try {
+        $ready = Join-Path $root 'build/tests/operation-ready'
+        $deadline = [DateTime]::UtcNow.AddSeconds(15)
+        while (-not (Test-Path -LiteralPath $ready) -and -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $process.Refresh() }
+        Assert-True (Test-Path -LiteralPath $ready) 'The actual test process must reach its test body.'
+        $buildRejected = $false
+        $packageRejected = $false
+        try { & (Join-Path $root 'scripts/build.ps1') | Out-Null } catch { $buildRejected = $_.Exception.Message -match 'lock' }
+        try { Invoke-FixturePackage $root -SkipTests } catch { $packageRejected = $_.Exception.Message -match 'lock' }
+        Assert-True ($buildRejected -and $packageRejected) 'Running test entry must exclude both other shared writers.'
+        Assert-True (@(Get-Batches $root).Count -eq 0) 'Competing package must not allocate a batch.'
+    } finally {
+        Write-Utf8 (Join-Path $root 'build/tests/release-operation') 'release'
+        if (-not $process.WaitForExit(15000)) { $process.Kill(); throw 'Fixture test process did not exit.' }
+    }
+    Assert-True ($process.ExitCode -eq 0) 'Fixture tests must finish normally.'
+    Invoke-FixturePackage $root -SkipTests
+    Assert-True ((Read-Manifest @(Get-Batches $root)[0]).status -eq 'succeeded') 'Lock must release when tests finish.'
+}
 Check 'Shanghai date advances at 16:00 UTC rather than host midnight' {
     $helper = Join-Path $repositoryRoot 'scripts/package-helpers.ps1'
     if (-not (Test-Path -LiteralPath $helper)) { throw 'Shanghai batch date conversion has not been implemented.' }
@@ -110,7 +171,7 @@ Check 'batch dates and numbers remain Gregorian and ASCII under Thai culture' {
 # Full C# regression tests run separately via test.ps1 -Suite All. This strict fixture
 # tests package orchestration without recursively running the package suite itself.
 Write-Utf8 (Join-Path $fixture 'scripts/test.ps1') @'
-param([string]$Suite, [switch]$BuildOnly)
+param([string]$Suite, [switch]$BuildOnly, [IO.FileStream]$OperationLock)
 $ErrorActionPreference = 'Stop'
 if ($Suite -ne 'All' -or $BuildOnly) { throw 'Package must execute all checks by default.' }
 $root = Split-Path -Parent $PSScriptRoot
@@ -236,6 +297,111 @@ Check 'an active package lock prevents competing output and permits a later retr
     } finally { $lock.Dispose() }
     Invoke-FixturePackage $root -SkipTests
     Assert-True ((Read-Manifest @(Get-Batches $root)[0]).status -eq 'succeeded') 'Lock must be reusable after release.'
+}
+
+Check 'a changed executable at the copy boundary cannot become a successful delivery' {
+    $root = New-Fixture 'copy integrity'
+    $replacementSource = Join-Path $root 'replacement.cs'
+    $replacement = Join-Path $root 'replacement.exe'
+    Write-Utf8 $replacementSource @"
+using System.Reflection;
+[assembly: AssemblyVersion("$fixtureVersion")]
+[assembly: AssemblyFileVersion("$fixtureVersion")]
+internal static class Replacement { public static int Main() { return 42; } }
+"@
+    $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+    & $compiler /nologo /target:exe "/out:$replacement" $replacementSource
+    Assert-True ($LASTEXITCODE -eq 0) 'Replacement fixture must compile.'
+    function Copy-Item {
+        param([string]$LiteralPath, [string]$Destination)
+        Microsoft.PowerShell.Management\Copy-Item -LiteralPath $LiteralPath -Destination $Destination
+        if ($Destination -match 'batch-[0-9]+[\\/]CodexUsage\.exe$') {
+            Microsoft.PowerShell.Management\Copy-Item -LiteralPath $replacement -Destination $Destination
+        }
+    }
+    $rejected = $false
+    try { Invoke-FixturePackage $root -SkipTests } catch { $rejected = $_.Exception.Message -match 'Copied executable does not match' }
+    Assert-True $rejected 'Final copied bytes must agree with the executable built for the batch.'
+    $manifest = Read-Manifest @(Get-Batches $root)[0]
+    Assert-True ($manifest.status -eq 'failed' -and $manifest.phase -eq 'package') 'Copy mismatch must retain an honest failed manifest.'
+}
+Check 'inputs changed after the pre-copy check cannot become a successful delivery' {
+    $root = New-Fixture 'late source change'
+    function Copy-Item {
+        param([string]$LiteralPath, [string]$Destination)
+        Microsoft.PowerShell.Management\Copy-Item -LiteralPath $LiteralPath -Destination $Destination
+        if ($Destination -match 'batch-[0-9]+[\\/]CodexUsage\.exe$') {
+            Add-Content -LiteralPath (Join-Path $root 'src/Program.cs') -Value '// Changed after the initial provenance check.'
+        }
+    }
+    $rejected = $false
+    try { Invoke-FixturePackage $root -SkipTests } catch { $rejected = $_.Exception.Message -match 'inputs changed' }
+    Assert-True $rejected 'Input stability must be checked after final artifacts have been copied.'
+    Assert-True ((Read-Manifest @(Get-Batches $root)[0]).status -eq 'failed') 'Late input change must leave a failed batch.'
+}
+Check 'default package invokes real build and real All test entries without reacquiring or releasing its lock' {
+    $root = New-Fixture 'nested actual entries'
+    foreach ($name in @('QuotaModels','QuotaParser','AppSettings','AppPaths','InteractionState','ResetFeed','IQuotaSource','CodexQuotaSource','ProcessJob','Theme','WidgetRenderer','UiText','DetailsLayout','TaskbarStacking','TaskbarPlacement','DetailsForm','UiDarkControls','WidgetForm','LayeredSurface')) {
+        Write-Utf8 (Join-Path $root ('src/' + $name + '.cs')) '// Empty fixture dependency.'
+    }
+    foreach ($name in @('DomainTests','FakeCodexServer','BridgeTests','ResetFeedTests','ThemeTests','DetailsLayoutTests','TaskbarStackingTests','UiBehaviorTests')) {
+        Write-Utf8 (Join-Path $root ('tests/' + $name + '.cs')) ('internal static class ' + $name + ' { public static int Main() { return 0; } }')
+    }
+    # Only the recursive Package suite is replaced. Both production entry scripts,
+    # every compiler call and all other fixture executables run unchanged.
+    Write-Utf8 (Join-Path $root 'tests/PackageTests.ps1') "param([string]`$OutputRoot)`r`nWrite-Output 'Recursive fixture package checks omitted.'"
+    Invoke-FixturePackage $root
+    $manifest = Read-Manifest @(Get-Batches $root)[0]
+    Assert-True ($manifest.status -eq 'succeeded' -and $manifest.build.status -eq 'passed' -and $manifest.tests.status -eq 'passed') 'Real nested entries must finish without a recursive lock failure.'
+    Assert-True (@(Get-ChildItem -LiteralPath (Join-Path $root 'build/tests') -Filter '*.exe').Count -eq 8) 'All must compile and execute every C# fixture suite including UiBehavior.'
+    $lock = [IO.File]::Open((Join-Path $root 'output/.package.lock'), [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    $lock.Dispose()
+}
+Check 'real build failure releases the lock and restores temporary directories before retry' {
+    $root = New-Fixture 'actual compiler failure'
+    $source = Join-Path $root 'src/Program.cs'
+    $validProgram = Get-Content -LiteralPath $source -Raw
+    Add-Content -LiteralPath $source -Value 'invalid C# syntax!'
+    $tempBefore = $env:TEMP
+    $tmpBefore = $env:TMP
+    $rejected = $false
+    try { & (Join-Path $root 'scripts/build.ps1') | Out-Null } catch { $rejected = $_.Exception.Message -match 'Build failed with compiler exit code' }
+    Assert-True $rejected 'The real compiler failure must reach the build failure path.'
+    Assert-True ($env:TEMP -eq $tempBefore -and $env:TMP -eq $tmpBefore) 'Failed build must restore TEMP/TMP.'
+    Write-Utf8 $source $validProgram
+    & (Join-Path $root 'scripts/build.ps1') | Out-Null
+    Assert-True (Test-Path -LiteralPath (Join-Path $root 'build/app/CodexUsage.exe')) 'The corrected build must acquire the released lock.'
+}
+Check 'real failing tests release the lock before a successful retry' {
+    $root = New-Fixture 'actual test failure'
+    foreach ($name in @('QuotaModels','QuotaParser','AppSettings','AppPaths','InteractionState','ResetFeed')) {
+        Write-Utf8 (Join-Path $root ('src/' + $name + '.cs')) '// Empty fixture dependency.'
+    }
+    $testSource = Join-Path $root 'tests/DomainTests.cs'
+    Write-Utf8 $testSource 'internal static class DomainTests { public static int Main() { return 1; } }'
+    $rejected = $false
+    try { & (Join-Path $root 'scripts/test.ps1') -Suite Domain | Out-Null } catch { $rejected = $_.Exception.Message -match 'Domain checks failed with exit code 1' }
+    Assert-True $rejected 'The actual failing test executable must fail the entry.'
+    Write-Utf8 $testSource 'internal static class DomainTests { public static int Main() { return 0; } }'
+    & (Join-Path $root 'scripts/test.ps1') -Suite Domain | Out-Null
+}
+Check 'an internal lock handle cannot bypass coordination when shared or from a different repository' {
+    $root = New-Fixture 'invalid lock handles'
+    $output = Join-Path $root 'output'
+    New-Item -ItemType Directory -Path $output -Force | Out-Null
+    $shared = [IO.File]::Open((Join-Path $output '.package.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::ReadWrite)
+    try {
+        $rejected = $false
+        try { & (Join-Path $root 'scripts/build.ps1') -OperationLock $shared | Out-Null } catch { $rejected = $_.Exception.Message -match 'lock handle must exclude' }
+        Assert-True $rejected 'A shared handle must not authorize nested entry.'
+    } finally { $shared.Dispose() }
+    $foreign = [IO.File]::Open((Join-Path $root 'foreign.lock'), [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    try {
+        $rejected = $false
+        try { & (Join-Path $root 'scripts/build.ps1') -OperationLock $foreign | Out-Null } catch { $rejected = $_.Exception.Message -match 'lock handle is invalid' }
+        Assert-True $rejected 'A foreign repository handle must not authorize nested entry.'
+    } finally { $foreign.Dispose() }
+    & (Join-Path $root 'scripts/build.ps1') | Out-Null
 }
 
 Write-Output ('Package checks: ' + $passed + ' passed, ' + $failed + ' failed.')

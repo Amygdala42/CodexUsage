@@ -118,6 +118,27 @@ internal static class BridgeTests
             Reached("api-error");
             NoChild();
         });
+        Run("oversized line is rejected before the server supplies its newline", delegate {
+            CheckOversizedOutput("oversized-line");
+        });
+        Run("continuous output without a newline is bounded and its process is closed", delegate {
+            CheckOversizedOutput("continuous-line");
+        });
+        foreach (string framing in new[] { "bom-crlf", "fragmented-utf8", "final-eof", "cr-only" })
+        {
+            string scenario = framing;
+            Run("bounded reader preserves protocol framing: " + scenario, delegate {
+                Scenario(scenario);
+                using (var source = new CodexQuotaSource(fakePath, supportPath))
+                using (var cancel = new CancellationTokenSource(5000))
+                {
+                    var result = source.FetchAsync(cancel.Token).GetAwaiter().GetResult();
+                    string plan = scenario == "fragmented-utf8" ? "专业😀" : "Pro";
+                    Check(result.PlanLabel == plan && result.Windows[0].RemainingPercent == 63, "framed quota and intact UTF-8 text");
+                }
+                NoChild();
+            });
+        }
         Run("sign out gives a login action", delegate {
             Scenario("signed-out");
             using (var source = new CodexQuotaSource(fakePath, supportPath))
@@ -193,6 +214,20 @@ internal static class BridgeTests
         Environment.SetEnvironmentVariable("QUOTA_FAKE_SCENARIO", name);
         if (File.Exists(pidPath)) File.Delete(pidPath);
         if (File.Exists(pidPath + ".trace")) File.Delete(pidPath + ".trace");
+    }
+    private static void CheckOversizedOutput(string scenario)
+    {
+        Scenario(scenario);
+        var elapsed = Stopwatch.StartNew();
+        try
+        {
+            using (var source = new CodexQuotaSource(fakePath, supportPath))
+            using (var cancel = new CancellationTokenSource(5000))
+                ExpectFailure(delegate { source.FetchAsync(cancel.Token).GetAwaiter().GetResult(); }, "响应过大", "SECRET_MUST_NOT_LEAK");
+            Check(elapsed.Elapsed.TotalSeconds < 3, "oversized output must fail before a newline or deadline");
+            Reached(scenario);
+        }
+        finally { NoChild(); }
     }
     private static void NoChild()
     {

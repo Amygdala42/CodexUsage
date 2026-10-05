@@ -28,6 +28,9 @@ internal static class DomainTests
         Run("JSON-RPC 错误不会泄露原始响应", RpcErrorIsRejectedWithoutLeakingPayload);
         Run("缺少套餐名时使用明确回退文案", MissingPlanUsesFallbackLabel);
         Run("缺失或损坏的设置返回默认值", MissingAndCorruptSettingsReturnDefaults);
+        Run("合法 JSON 中错误布尔值安全回退", delegate { InvalidSettingsReturnDefaults("{\"AlwaysOnTop\":\"bad\"}"); });
+        Run("合法 JSON 中错误可空坐标安全回退", delegate { InvalidSettingsReturnDefaults("{\"X\":\"bad\"}"); });
+        Run("合法 JSON 中溢出整数安全回退", delegate { InvalidSettingsReturnDefaults("{\"ScalePercent\":2147483648}"); });
         Run("设置保存后会清理和规范化值", SettingsRoundTripSanitizesValues);
         Run("旧尺寸恢复100且语言偏好可保存", LegacyScaleAndLanguagePreference);
         Run("新设置与旧设置默认使用深色主题", ThemeDefaultsToDark);
@@ -591,6 +594,24 @@ internal static class DomainTests
         {
             Directory.Delete(dir, true);
         }
+    }
+
+    private static void InvalidSettingsReturnDefaults(string json)
+    {
+        string dir = CreateTestDirectory();
+        try
+        {
+            string file = Path.Combine(dir, "settings.json");
+            File.WriteAllText(file, json, System.Text.Encoding.UTF8);
+            AppSettings loaded = new SettingsStore(file).Load();
+            AssertDefaults(loaded, "字段类型无效");
+            Equal("zh", loaded.Language, "启动语言安全回退");
+            Equal("dark", loaded.ThemeMode, "默认主题");
+            True(loaded.DockToTaskbar, "默认停靠");
+            False(loaded.TaskbarX.HasValue, "默认任务栏坐标");
+            Equal(json, File.ReadAllText(file), "加载不能覆盖损坏的设置");
+        }
+        finally { Directory.Delete(dir, true); }
     }
 
     private static void SettingsRoundTripSanitizesValues()

@@ -6,6 +6,28 @@ using System.Windows.Forms;
 
 namespace CodexQuotaLite
 {
+    internal sealed class UiKeyboardMenuItem : ToolStripMenuItem
+    {
+        private bool keyboardActivation;
+        internal event EventHandler KeyboardInvoked;
+        internal UiKeyboardMenuItem(string text, EventHandler clicked) : base(text, null, clicked) { }
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            Keys key = keyData & Keys.KeyCode;
+            if (key != Keys.Enter && key != Keys.Space) return base.ProcessDialogKey(keyData);
+            // ToolStrip preprocessing consumes Enter before KeyDown. Route Space
+            // through the same activation path so both preserve normal menu close.
+            keyboardActivation = true;
+            try { return base.ProcessDialogKey(key == Keys.Space ? (keyData & ~Keys.KeyCode) | Keys.Enter : keyData); }
+            finally { keyboardActivation = false; }
+        }
+        protected override void OnClick(EventArgs e)
+        {
+            if (keyboardActivation && KeyboardInvoked != null) KeyboardInvoked(this, EventArgs.Empty);
+            base.OnClick(e);
+        }
+    }
+
     internal sealed class UiDarkChoice : Control
     {
         internal sealed class ChoiceItems : Collection<object>
@@ -26,6 +48,8 @@ namespace CodexQuotaLite
         internal readonly ChoiceItems Items;
         internal int ItemHeight = 22;
         internal event EventHandler SelectedIndexChanged;
+        internal event EventHandler KeyboardInteraction;
+        internal event EventHandler PointerInteraction;
         internal int SelectedIndex
         {
             get { return selectedIndex; }
@@ -39,6 +63,9 @@ namespace CodexQuotaLite
             }
         }
         internal bool IsDroppedDown { get { return popup != null && popup.Visible; } }
+        internal bool DropDownFocused { get { return IsDroppedDown && (popup.ContainsFocus || (list != null && list.ContainsFocus)); } }
+        private void NotifyKeyboardInteraction() { if (KeyboardInteraction != null) KeyboardInteraction(this, EventArgs.Empty); }
+        private void NotifyPointerInteraction() { if (PointerInteraction != null) PointerInteraction(this, EventArgs.Empty); }
         internal bool DropDownContains(Point point) { return IsDroppedDown && popup.Bounds.Contains(point); }
 
         internal UiDarkChoice()
@@ -85,7 +112,7 @@ namespace CodexQuotaLite
         protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
         protected override void OnEnabledChanged(EventArgs e) { if (!Enabled) CloseDropDown(); Invalidate(); base.OnEnabledChanged(e); }
         protected override void OnMouseDown(MouseEventArgs e)
-        { base.OnMouseDown(e); if (e.Button == MouseButtons.Left && Enabled) { Focus(); if (IsDroppedDown) CloseDropDown(); else OpenDropDown(); } }
+        { NotifyPointerInteraction(); base.OnMouseDown(e); if (e.Button == MouseButtons.Left && Enabled) { Focus(); if (IsDroppedDown) CloseDropDown(); else OpenDropDown(); } }
         protected override bool IsInputKey(Keys keyData)
         {
             Keys key = keyData & Keys.KeyCode;
@@ -93,6 +120,7 @@ namespace CodexQuotaLite
         }
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            NotifyKeyboardInteraction();
             base.OnKeyDown(e);
             if (!Enabled) return;
             if (e.KeyCode == Keys.F4 || e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter || (e.Alt && e.KeyCode == Keys.Down))
@@ -104,6 +132,7 @@ namespace CodexQuotaLite
         }
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            NotifyPointerInteraction();
             if (Enabled && Items.Count > 0) SelectedIndex = Math.Max(0, SelectedIndex - Math.Sign(e.Delta));
             HandledMouseEventArgs handled = e as HandledMouseEventArgs; if (handled != null) handled.Handled = true;
             base.OnMouseWheel(e);
@@ -192,10 +221,11 @@ namespace CodexQuotaLite
             protected override void OnMouseMove(MouseEventArgs e)
             { int index = first + (e.Y - 4) / rowHeight; if (e.Y >= 4 && e.Y < 4 + VisibleRows * rowHeight && index < owner.Items.Count && index != active) { active = index; Invalidate(); } base.OnMouseMove(e); }
             protected override void OnMouseUp(MouseEventArgs e)
-            { base.OnMouseUp(e); int index = first + (e.Y - 4) / rowHeight; if (e.Button == MouseButtons.Left && e.Y >= 4 && e.Y < 4 + VisibleRows * rowHeight && index >= 0 && index < owner.Items.Count) owner.Commit(index); }
+            { owner.NotifyPointerInteraction(); base.OnMouseUp(e); int index = first + (e.Y - 4) / rowHeight; if (e.Button == MouseButtons.Left && e.Y >= 4 && e.Y < 4 + VisibleRows * rowHeight && index >= 0 && index < owner.Items.Count) owner.Commit(index); }
             protected override bool IsInputKey(Keys keyData) { return true; }
             protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
             {
+                owner.NotifyKeyboardInteraction();
                 Keys key = keyData & Keys.KeyCode;
                 if (key == Keys.Escape || key == Keys.F4) { owner.CloseDropDown(); owner.Focus(); return true; }
                 if (key == Keys.Enter || key == Keys.Space) { owner.Commit(active); return true; }
@@ -211,6 +241,7 @@ namespace CodexQuotaLite
             }
             protected override void OnMouseWheel(MouseEventArgs e)
             {
+                owner.NotifyPointerInteraction();
                 first = Math.Max(0, Math.Min(owner.Items.Count - VisibleRows, first - Math.Sign(e.Delta) * 3));
                 active = Math.Max(first, Math.Min(first + VisibleRows - 1, active)); Invalidate();
                 HandledMouseEventArgs handled = e as HandledMouseEventArgs; if (handled != null) handled.Handled = true;
@@ -256,98 +287,4 @@ namespace CodexQuotaLite
         }
     }
 
-    internal sealed class UiDarkScrollPanel : Panel
-    {
-        private int contentHeight;
-        private int offset;
-        private bool dragging;
-        private int dragStart;
-        private int offsetStart;
-        internal float ScaleFactor = 1;
-        internal int ScrollOffset { get { return offset; } }
-        internal int ContentWidth { get { return Math.Max(1, ClientSize.Width - (int)Math.Ceiling(15 * ScaleFactor)); } }
-        private int MaximumOffset { get { return Math.Max(0, contentHeight - ClientSize.Height); } }
-        internal UiDarkScrollPanel()
-        {
-            AutoScroll = false; TabStop = true; BackColor = Theme.Background;
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.Selectable, true);
-            AccessibleRole = AccessibleRole.Pane;
-        }
-        internal void SetContentHeight(int height) { contentHeight = Math.Max(0, height); SetOffset(offset); Invalidate(); }
-        internal void SetOffset(int value)
-        {
-            int next = Math.Max(0, Math.Min(MaximumOffset, value));
-            int delta = next - offset;
-            offset = next;
-            if (delta != 0) foreach (Control child in Controls) child.Top -= delta;
-            Invalidate();
-        }
-        internal void EnsureVisible(Control child)
-        {
-            if (child == null || child.Parent != this) return;
-            if (child.Top < 0) SetOffset(offset + child.Top);
-            else if (child.Bottom > ClientSize.Height) SetOffset(offset + child.Bottom - ClientSize.Height);
-        }
-        protected override void OnControlAdded(ControlEventArgs e) { base.OnControlAdded(e); e.Control.MouseWheel += ChildWheel; }
-        protected override void OnControlRemoved(ControlEventArgs e) { e.Control.MouseWheel -= ChildWheel; base.OnControlRemoved(e); }
-        private void ChildWheel(object sender, MouseEventArgs e) { ScrollWheel(e); }
-        private void ScrollWheel(MouseEventArgs e)
-        {
-            SetOffset(offset - Math.Sign(e.Delta) * Math.Max(1, (int)(48 * ScaleFactor)));
-            HandledMouseEventArgs handled = e as HandledMouseEventArgs; if (handled != null) handled.Handled = true;
-        }
-        protected override void OnMouseWheel(MouseEventArgs e) { ScrollWheel(e); }
-        private Rectangle Thumb()
-        {
-            int trackHeight = Math.Max(1, Height - 4);
-            int h = Math.Min(trackHeight, Math.Max((int)(28 * ScaleFactor), trackHeight * ClientSize.Height / Math.Max(1, contentHeight)));
-            int y = 2 + (trackHeight - h) * offset / Math.Max(1, MaximumOffset);
-            int w = Math.Max(5, (int)(6 * ScaleFactor));
-            return new Rectangle(Width - w - 2, y, w, h);
-        }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            if (MaximumOffset <= 0) return;
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            Rectangle thumb = Thumb();
-            Theme.Rounded(e.Graphics, new RectangleF(thumb.X, 2, thumb.Width, Height - 4), thumb.Width / 2f, Theme.Card, null);
-            Theme.Rounded(e.Graphics, thumb, thumb.Width / 2f, dragging || Focused ? Theme.Aqua : Theme.Muted, null);
-        }
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
-            base.OnMouseDown(e); if (e.Button != MouseButtons.Left) return; Focus();
-            if (MaximumOffset <= 0 || e.X < ContentWidth) return;
-            Rectangle thumb = Thumb();
-            if (thumb.Contains(e.Location)) { dragging = true; dragStart = e.Y; offsetStart = offset; Capture = true; }
-            else SetOffset(offset + (e.Y < thumb.Top ? -1 : 1) * ClientSize.Height);
-        }
-        protected override void OnMouseMove(MouseEventArgs e)
-        {
-            base.OnMouseMove(e); if (!dragging) return;
-            int travel = Math.Max(1, Height - 4 - Thumb().Height);
-            SetOffset(offsetStart + (int)((long)(e.Y - dragStart) * MaximumOffset / travel));
-        }
-        protected override void OnMouseUp(MouseEventArgs e) { dragging = false; Capture = false; Invalidate(); base.OnMouseUp(e); }
-        protected override void OnMouseCaptureChanged(EventArgs e) { if (!Capture) dragging = false; base.OnMouseCaptureChanged(e); }
-        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); SetOffset(offset); }
-        protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
-        protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
-        protected override bool IsInputKey(Keys keyData)
-        {
-            Keys key = keyData & Keys.KeyCode;
-            return key == Keys.Up || key == Keys.Down || key == Keys.PageUp || key == Keys.PageDown || key == Keys.Home || key == Keys.End || base.IsInputKey(keyData);
-        }
-        protected override void OnKeyDown(KeyEventArgs e)
-        {
-            base.OnKeyDown(e);
-            if (e.KeyCode == Keys.Home) SetOffset(0);
-            else if (e.KeyCode == Keys.End) SetOffset(MaximumOffset);
-            else if (e.KeyCode == Keys.PageDown || e.KeyCode == Keys.PageUp) SetOffset(offset + (e.KeyCode == Keys.PageDown ? 1 : -1) * ClientSize.Height);
-            else if (e.KeyCode == Keys.Down || e.KeyCode == Keys.Up) SetOffset(offset + (e.KeyCode == Keys.Down ? 1 : -1) * (int)(36 * ScaleFactor));
-            else return;
-            e.Handled = true;
-        }
-    }
 }
-
